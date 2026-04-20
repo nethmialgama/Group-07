@@ -1,6 +1,7 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
 import "./App.css";
+import { showToast } from "./toast";
 
 // --- IMPORT ALL PAGES ---
 import Login from "./Login";
@@ -32,6 +33,7 @@ function App() {
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [postLoginTarget, setPostLoginTarget] = useState(null);
 
   // NEW: Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -53,6 +55,16 @@ function App() {
 
   // 3. Navigation Handler
   const handleNavigation = (page, data = null) => {
+    // Require authentication before entering booking flow.
+    if (page === "booking" && !isLoggedIn) {
+      setPostLoginTarget({ page: "booking", room: data });
+      showToast("Please login first to book a room.", "warning");
+      setCurrentPage("login");
+      window.history.pushState({ page: "login" }, "", "#login");
+      window.scrollTo(0, 0);
+      return;
+    }
+
     setCurrentPage(page);
     if (data) {
       setSelectedRoom(data);
@@ -64,6 +76,14 @@ function App() {
   // 4. Auth Handlers (NEW)
   const handleUserLogin = () => {
     setIsLoggedIn(true);
+
+    if (postLoginTarget) {
+      const target = postLoginTarget;
+      setPostLoginTarget(null);
+      handleNavigation(target.page, target.room || null);
+      return;
+    }
+
     handleNavigation("dashboard");
   };
 
