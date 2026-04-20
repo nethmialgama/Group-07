@@ -3,39 +3,58 @@ const router = express.Router();
 const pool = require("../db");
 const crypto = require("crypto");
 
-// POST /api/auth/login - staff login
+// POST /api/auth/login - staff or guest login
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
-    return res.status(400).json({ error: "Username and password required" });
+    return res
+      .status(400)
+      .json({ error: "Username/email and password required" });
   }
 
   try {
-    const [rows] = await pool.query("SELECT * FROM Staff WHERE username = ?", [
-      username,
-    ]);
-    if (rows.length === 0) {
+    const [staffRows] = await pool.query(
+      "SELECT * FROM Staff WHERE username = ?",
+      [username],
+    );
+
+    // 1) Staff login path (username)
+    if (staffRows.length > 0) {
+      const staff = staffRows[0];
+      const passwordHash = crypto
+        .createHash("sha256")
+        .update(password)
+        .digest("hex");
+      if (passwordHash !== staff.password_hash) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      return res.json({
+        success: true,
+        staffId: staff.staffId,
+        name: staff.name,
+        role: staff.role,
+        email: staff.email,
+      });
+    }
+
+    // 2) Guest login path (signup users use email)
+    const [guestRows] = await pool.query(
+      "SELECT * FROM Guest WHERE email = ?",
+      [username],
+    );
+
+    if (guestRows.length === 0) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    const staff = rows[0];
-
-    // Compare password with stored hash (SHA2)
-    const passwordHash = crypto
-      .createHash("sha256")
-      .update(password)
-      .digest("hex");
-    if (passwordHash !== staff.password_hash) {
-      return res.status(401).json({ error: "Invalid username or password" });
-    }
-
-    // Success — return staff info (no sensitive data)
-    res.json({
+    const guest = guestRows[0];
+    return res.json({
       success: true,
-      staffId: staff.staffId,
-      name: staff.name,
-      role: staff.role,
-      email: staff.email,
+      guestId: guest.guestId,
+      name: guest.name,
+      role: "Guest",
+      email: guest.email,
     });
   } catch (err) {
     console.error(err);
