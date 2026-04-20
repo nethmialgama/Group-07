@@ -518,6 +518,79 @@ body {
   text-decoration: underline;
 }
 
+/* --- ROOM DETAILS PAGE --- */
+.room-details-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.room-details-image {
+  width: 100%;
+  height: 390px;
+  object-fit: cover;
+}
+
+.room-details-content {
+  padding: 24px;
+}
+
+.room-details-content h1 {
+  margin: 0 0 8px 0;
+}
+
+.room-details-rating {
+  margin: 0 0 12px 0;
+  color: #111827;
+  font-weight: 600;
+}
+
+.room-details-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.room-details-tag {
+  background: #eef2ff;
+  color: #1e3a8a;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.room-details-price {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 14px 0;
+}
+
+.room-details-text {
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.room-details-actions {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .room-details-image {
+    height: 240px;
+  }
+
+  .room-details-actions {
+    flex-direction: column;
+  }
+}
+
 /* Right Column */
 .booking-right {
   flex: 1;

@@ -7,6 +7,7 @@ import { showToast } from "./toast";
 import Login from "./Login";
 import Signup from "./Signup";
 import Rooms from "./Rooms";
+import RoomDetails from "./RoomDetails";
 import Booking from "./Booking";
 import Payment from "./Payment";
 import Dashboard from "./Dashboard";
@@ -143,6 +144,20 @@ function App() {
           onLogout={handleUserLogout}
         />
         <Rooms onNavigate={handleNavigation} />
+        <Footer onNavigate={handleNavigation} />
+      </div>
+    );
+  }
+
+  if (currentPage === "room-details") {
+    return (
+      <div className="App">
+        <Navbar
+          onNavigate={handleNavigation}
+          isLoggedIn={isLoggedIn}
+          onLogout={handleUserLogout}
+        />
+        <RoomDetails onNavigate={handleNavigation} room={selectedRoom} />
         <Footer onNavigate={handleNavigation} />
       </div>
     );
@@ -360,6 +375,16 @@ function App() {
             price="LKR 6,000"
             rating="4.6"
             image="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80"
+            onViewDetails={() =>
+              handleNavigation("room-details", {
+                title: "Deluxe Double Room",
+                price: "6,000",
+                image:
+                  "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
+                rating: 4.6,
+                tags: ["Wi-Fi", "AC", "Mini Fridge", "Balcony"],
+              })
+            }
             onBook={() =>
               handleNavigation("booking", {
                 title: "Deluxe Double Room",
@@ -376,6 +401,16 @@ function App() {
             price="LKR 8,500"
             rating="4.3"
             image="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=500&q=80"
+            onViewDetails={() =>
+              handleNavigation("room-details", {
+                title: "Superior Room",
+                price: "8,500",
+                image:
+                  "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=500&q=80",
+                rating: 4.3,
+                tags: ["Wi-Fi", "AC", "Smart TV", "Breakfast"],
+              })
+            }
             onBook={() =>
               handleNavigation("booking", {
                 title: "Superior Room",
@@ -392,6 +427,16 @@ function App() {
             price="LKR 10,000"
             rating="4.7"
             image="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80"
+            onViewDetails={() =>
+              handleNavigation("room-details", {
+                title: "Family Room",
+                price: "10,000",
+                image:
+                  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80",
+                rating: 4.7,
+                tags: ["Wi-Fi", "AC", "Dining"],
+              })
+            }
             onBook={() =>
               handleNavigation("booking", {
                 title: "Family Room",
@@ -537,7 +582,7 @@ function Footer({ onNavigate }) {
   );
 }
 
-function RoomCard({ title, price, image, rating, onBook }) {
+function RoomCard({ title, price, image, rating, onViewDetails, onBook }) {
   return (
     <div className="room-card">
       <img src={image} alt={title} />
@@ -553,7 +598,9 @@ function RoomCard({ title, price, image, rating, onBook }) {
           <div className="rating">⭐ {rating}</div>
         </div>
         <div className="card-buttons">
-          <button className="btn-outline">View Details</button>
+          <button className="btn-outline" onClick={onViewDetails}>
+            View Details
+          </button>
           <button className="btn-fill" onClick={onBook}>
             Book Now
           </button>

@@ -112,7 +112,7 @@ function Rooms({ onNavigate }) {
                 {/* When clicked, navigate to 'room-details' */}
                 <button
                   className="btn-outline"
-                  onClick={() => onNavigate("room-details")}
+                  onClick={() => onNavigate("room-details", room)}
                 >
                   View Details
                 </button>
