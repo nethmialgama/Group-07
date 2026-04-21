@@ -484,7 +484,10 @@ function App() {
           <a
             href="#"
             className="see-all"
-            onClick={() => handleNavigation("rooms")}
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavigation("rooms");
+            }}
           >
             See all rooms
           </a>
@@ -543,19 +546,49 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
         Smart Hotel
       </div>
       <div className="nav-links">
-        <a href="#" onClick={() => onNavigate("home")}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("home");
+          }}
+        >
           Home
         </a>
-        <a href="#" onClick={() => onNavigate("rooms")}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("rooms");
+          }}
+        >
           Rooms
         </a>
-        <a href="#" onClick={() => onNavigate("offers")}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("offers");
+          }}
+        >
           Offers
         </a>
-        <a href="#" onClick={() => onNavigate("gallery")}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("gallery");
+          }}
+        >
           Gallery
         </a>
-        <a href="#" onClick={() => onNavigate("contact")}>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("contact");
+          }}
+        >
           Contact
         </a>
       </div>
