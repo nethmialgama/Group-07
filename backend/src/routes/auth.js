@@ -26,13 +26,15 @@ function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-function createToken(payload) {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: "8h" });
+function createToken(payload, rememberMe = false) {
+  return jwt.sign(payload, getJwtSecret(), {
+    expiresIn: rememberMe ? "30d" : "8h",
+  });
 }
 
 // POST /api/auth/login - staff or guest login
 router.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, rememberMe } = req.body;
   if (!username || !password) {
     return res
       .status(400)
@@ -55,13 +57,16 @@ router.post("/login", async (req, res) => {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
-      const token = createToken({
-        userType: "staff",
-        id: staff.staffId,
-        role: staff.role,
-        email: staff.email,
-        name: staff.name,
-      });
+      const token = createToken(
+        {
+          userType: "staff",
+          id: staff.staffId,
+          role: staff.role,
+          email: staff.email,
+          name: staff.name,
+        },
+        !!rememberMe,
+      );
 
       return res.json({
         success: true,
@@ -89,13 +94,16 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
-    const token = createToken({
-      userType: "guest",
-      id: guest.guestId,
-      role: "Guest",
-      email: guest.email,
-      name: guest.name,
-    });
+    const token = createToken(
+      {
+        userType: "guest",
+        id: guest.guestId,
+        role: "Guest",
+        email: guest.email,
+        name: guest.name,
+      },
+      !!rememberMe,
+    );
 
     return res.json({
       success: true,
@@ -113,7 +121,7 @@ router.post("/login", async (req, res) => {
 
 // POST /api/auth/guest-login - guest login (if needed)
 router.post("/guest-login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password required" });
   }
@@ -133,13 +141,16 @@ router.post("/guest-login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const token = createToken({
-      userType: "guest",
-      id: guest.guestId,
-      role: "Guest",
-      email: guest.email,
-      name: guest.name,
-    });
+    const token = createToken(
+      {
+        userType: "guest",
+        id: guest.guestId,
+        role: "Guest",
+        email: guest.email,
+        name: guest.name,
+      },
+      !!rememberMe,
+    );
 
     res.json({
       success: true,

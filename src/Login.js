@@ -23,7 +23,7 @@ function Login({ onLogin, onBack, onSignupClick }) {
       const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: identifier, password }),
+        body: JSON.stringify({ username: identifier, password, rememberMe }),
       });
 
       const data = await response.json();

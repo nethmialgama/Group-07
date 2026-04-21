@@ -98,7 +98,8 @@ function App() {
   }, []);
 
   // 3. Navigation Handler
-  const handleNavigation = (page, data = null) => {
+  const handleNavigation = (page, data = null, options = {}) => {
+    const bypassAuthGuard = !!options.bypassAuthGuard;
     const protectedUserPages = [
       "booking",
       "payment",
@@ -115,7 +116,7 @@ function App() {
     ];
 
     // Require authentication before entering booking flow.
-    if (protectedUserPages.includes(page) && !isLoggedIn) {
+    if (protectedUserPages.includes(page) && !isLoggedIn && !bypassAuthGuard) {
       setPostLoginTarget({ page, room: data });
       showToast("Please login first.", "warning");
       setCurrentPage("login");
@@ -152,14 +153,16 @@ function App() {
     if (postLoginTarget) {
       const target = postLoginTarget;
       setPostLoginTarget(null);
-      handleNavigation(target.page, target.room || null);
+      handleNavigation(target.page, target.room || null, {
+        bypassAuthGuard: true,
+      });
       return;
     }
 
     if ((userData?.role || freshAuth.role) === "Admin") {
-      handleNavigation("admin-dashboard");
+      handleNavigation("admin-dashboard", null, { bypassAuthGuard: true });
     } else {
-      handleNavigation("dashboard");
+      handleNavigation("dashboard", null, { bypassAuthGuard: true });
     }
   };
 

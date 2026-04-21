@@ -17,7 +17,7 @@ function AdminLogin({ onNavigate, onAdminLogin }) {
       const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: email, password }),
+        body: JSON.stringify({ username: email, password, rememberMe }),
       });
 
       const data = await response.json();
@@ -60,7 +60,7 @@ function AdminLogin({ onNavigate, onAdminLogin }) {
             <div className="input-wrapper">
               <span className="input-icon">✉️</span>
               <input
-                type="email"
+                type="text"
                 placeholder="admin@smarthotel.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
