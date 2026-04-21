@@ -1,6 +1,8 @@
 const COOKIE_TOKEN = "sh_token";
 const COOKIE_ROLE = "sh_role";
 const COOKIE_USER = "sh_user";
+const REMEMBERED_USER_IDENTIFIER = "sh_remember_user_identifier";
+const REMEMBERED_ADMIN_IDENTIFIER = "sh_remember_admin_identifier";
 
 function setCookie(name, value, days = null) {
   let cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
@@ -109,4 +111,26 @@ export function clearStoredAuth() {
   deleteCookie(COOKIE_TOKEN);
   deleteCookie(COOKIE_ROLE);
   deleteCookie(COOKIE_USER);
+}
+
+export function setRememberedIdentifier(scope, identifier, rememberMe) {
+  const key =
+    scope === "admin"
+      ? REMEMBERED_ADMIN_IDENTIFIER
+      : REMEMBERED_USER_IDENTIFIER;
+
+  if (rememberMe && identifier) {
+    localStorage.setItem(key, String(identifier));
+    return;
+  }
+
+  localStorage.removeItem(key);
+}
+
+export function getRememberedIdentifier(scope) {
+  const key =
+    scope === "admin"
+      ? REMEMBERED_ADMIN_IDENTIFIER
+      : REMEMBERED_USER_IDENTIFIER;
+  return localStorage.getItem(key) || "";
 }

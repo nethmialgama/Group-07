@@ -1,14 +1,19 @@
 // src/AdminLogin.js
 import React, { useState } from "react";
 import { showToast } from "./toast";
-import { persistAuth } from "./auth";
+import {
+  getRememberedIdentifier,
+  persistAuth,
+  setRememberedIdentifier,
+} from "./auth";
 
 function AdminLogin({ onNavigate, onAdminLogin }) {
-  const [email, setEmail] = useState("");
+  const rememberedIdentifier = getRememberedIdentifier("admin");
+  const [email, setEmail] = useState(rememberedIdentifier);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(!!rememberedIdentifier);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -33,6 +38,7 @@ function AdminLogin({ onNavigate, onAdminLogin }) {
       }
 
       persistAuth(data, { rememberMe });
+      setRememberedIdentifier("admin", email, rememberMe);
 
       showToast("Admin login successful", "success");
       onAdminLogin(data);

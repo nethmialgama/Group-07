@@ -1,15 +1,20 @@
 // src/Login.js
 import React, { useState } from "react";
 import "./Login.css";
-import { persistAuth } from "./auth";
+import {
+  getRememberedIdentifier,
+  persistAuth,
+  setRememberedIdentifier,
+} from "./auth";
 
 // We added 'onSignupClick' to the properties here
 function Login({ onLogin, onBack, onSignupClick }) {
-  const [identifier, setIdentifier] = useState("");
+  const rememberedIdentifier = getRememberedIdentifier("user");
+  const [identifier, setIdentifier] = useState(rememberedIdentifier);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(!!rememberedIdentifier);
 
   const handleLogin = async () => {
     setError("");
@@ -30,6 +35,7 @@ function Login({ onLogin, onBack, onSignupClick }) {
 
       if (response.ok && data.success) {
         persistAuth(data, { rememberMe });
+        setRememberedIdentifier("user", identifier, rememberMe);
         onLogin(data); // Call parent callback
       } else {
         setError(data.error || "Login failed");
