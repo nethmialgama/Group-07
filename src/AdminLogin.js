@@ -1,12 +1,14 @@
 // src/AdminLogin.js
 import React, { useState } from "react";
 import { showToast } from "./toast";
+import { persistAuth } from "./auth";
 
 function AdminLogin({ onNavigate, onAdminLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -30,11 +32,7 @@ function AdminLogin({ onNavigate, onAdminLogin }) {
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify(data));
-      localStorage.setItem("role", data.role);
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
+      persistAuth(data, { rememberMe });
 
       showToast("Admin login successful", "success");
       onAdminLogin(data);
@@ -93,7 +91,12 @@ function AdminLogin({ onNavigate, onAdminLogin }) {
 
           <div className="admin-options">
             <div className="remember-me">
-              <input type="checkbox" id="admin-remember" />
+              <input
+                type="checkbox"
+                id="admin-remember"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
               <label htmlFor="admin-remember">Remember Me</label>
             </div>
             <span className="forgot-pass">Forgot password?</span>

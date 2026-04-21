@@ -145,8 +145,9 @@ function App() {
 
   // 4. Auth Handlers (NEW)
   const handleUserLogin = (userData) => {
+    const freshAuth = getStoredAuth();
     setIsLoggedIn(true);
-    setRole(userData?.role || localStorage.getItem("role") || "Guest");
+    setRole(userData?.role || freshAuth.role || "Guest");
 
     if (postLoginTarget) {
       const target = postLoginTarget;
@@ -155,7 +156,7 @@ function App() {
       return;
     }
 
-    if ((userData?.role || localStorage.getItem("role")) === "Admin") {
+    if ((userData?.role || freshAuth.role) === "Admin") {
       handleNavigation("admin-dashboard");
     } else {
       handleNavigation("dashboard");
@@ -538,7 +539,7 @@ function App() {
 
 // UPDATED NAVBAR: Shows different buttons based on login status
 function Navbar({ onNavigate, isLoggedIn, onLogout }) {
-  const role = localStorage.getItem("role");
+  const role = getStoredAuth().role;
 
   return (
     <nav className="navbar">

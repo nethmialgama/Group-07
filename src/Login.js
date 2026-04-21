@@ -1,6 +1,7 @@
 // src/Login.js
 import React, { useState } from "react";
 import "./Login.css";
+import { persistAuth } from "./auth";
 
 // We added 'onSignupClick' to the properties here
 function Login({ onLogin, onBack, onSignupClick }) {
@@ -8,6 +9,7 @@ function Login({ onLogin, onBack, onSignupClick }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleLogin = async () => {
     setError("");
@@ -27,12 +29,7 @@ function Login({ onLogin, onBack, onSignupClick }) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Store user info in localStorage
-        localStorage.setItem("user", JSON.stringify(data));
-        localStorage.setItem("role", data.role);
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-        }
+        persistAuth(data, { rememberMe });
         onLogin(data); // Call parent callback
       } else {
         setError(data.error || "Login failed");
@@ -90,7 +87,12 @@ function Login({ onLogin, onBack, onSignupClick }) {
             )}
 
             <div className="remember-me">
-              <input type="checkbox" id="remember" />
+              <input
+                type="checkbox"
+                id="remember"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
               <label htmlFor="remember">Remember me</label>
             </div>
 
