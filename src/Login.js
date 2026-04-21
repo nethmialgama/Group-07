@@ -30,6 +30,9 @@ function Login({ onLogin, onBack, onSignupClick }) {
         // Store user info in localStorage
         localStorage.setItem("user", JSON.stringify(data));
         localStorage.setItem("role", data.role);
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         onLogin(data); // Call parent callback
       } else {
         setError(data.error || "Login failed");

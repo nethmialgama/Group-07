@@ -1,64 +1,49 @@
 // src/Rooms.js
 import React from "react";
+import { useEffect, useState } from "react";
+import { showToast } from "./toast";
 
 function Rooms({ onNavigate }) {
-  // Mock data for the rooms shown in your image
-  const roomsData = [
-    {
-      id: 1,
-      title: "Deluxe Double Room",
-      tags: ["Wi-Fi", "AC", "Mini Fridge", "Balcony"],
-      price: "6,000",
-      rating: 5,
-      image:
-        "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 2,
-      title: "Superior Room",
-      tags: ["Wi-Fi", "AC", "Smart TV", "Breakfast"],
-      price: "8,500",
-      rating: 4,
-      image:
-        "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 3,
-      title: "Family Suite",
-      tags: ["Wi-Fi", "AC", "2 Bedrooms", "Dining Area"],
-      price: "10,000",
-      rating: 5,
-      image:
-        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 4,
-      title: "Standard Single Room",
-      tags: ["Wi-Fi", "AC", "TV"],
-      price: "6,000",
-      rating: 4,
-      image:
-        "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 5,
-      title: "Penthouse Suite",
-      tags: ["Wi-Fi", "AC", "Rooftop View", "Private Pool"],
-      price: "40,000",
-      rating: 5,
-      image:
-        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 6,
-      title: "Luxury King Suite",
-      tags: ["Wi-Fi", "AC", "Pool Access", "Living Room"],
-      price: "25,000",
-      rating: 5,
-      image:
-        "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=500&q=80",
-    },
-  ];
+  const [roomsData, setRoomsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/rooms");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load rooms");
+        }
+
+        const mapped = data
+          .filter((room) => room.status === "Available")
+          .map((room, idx) => ({
+            id: room.roomId,
+            roomId: room.roomId,
+            title: `${room.roomType} Room`,
+            tags: (room.amenities || "Wi-Fi, AC")
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
+            price: Number(room.roomPrice || 0).toLocaleString(),
+            rating: 4 + (idx % 10) / 10,
+            image:
+              "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
+            status: room.status,
+          }));
+
+        setRoomsData(mapped);
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRooms();
+  }, []);
 
   return (
     <div className="page-container">
@@ -83,6 +68,8 @@ function Rooms({ onNavigate }) {
       </div>
 
       {/* Room Grid */}
+      {loading ? <p>Loading rooms...</p> : null}
+
       <div className="room-grid">
         {roomsData.map((room) => (
           <div key={room.id} className="room-card">

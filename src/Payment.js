@@ -1,5 +1,7 @@
 // src/Payment.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { getAuthHeaders } from "./auth";
+import { showToast } from "./toast";
 
 function Payment({ onNavigate, room }) {
   // Fallback data if page is refreshed directly
@@ -8,14 +10,64 @@ function Payment({ onNavigate, room }) {
     price: "6,000",
     checkIn: "2025-10-08",
     checkOut: "2025-10-09",
-    total: "6,000"
+    total: "6,000",
   };
 
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'paypal', 'bank'
+  const [paymentMethod, setPaymentMethod] = useState("card"); // 'card', 'paypal', 'bank'
+  const [isPaying, setIsPaying] = useState(false);
 
-  const handlePay = () => {
-    alert("Payment Successful! Booking Confirmed.");
-    onNavigate('dashboard'); // We will build this page next
+  const handlePay = async () => {
+    if (!selectedRoom.reservationId) {
+      showToast(
+        "No reservation found. Please complete booking first.",
+        "warning",
+      );
+      onNavigate("booking");
+      return;
+    }
+
+    const methodMap = {
+      card: "Card",
+      paypal: "Online",
+      bank: "Bank Transfer",
+    };
+
+    setIsPaying(true);
+    try {
+      const amountRaw = String(
+        selectedRoom.totalPrice || selectedRoom.price || "0",
+      ).replace(/,/g, "");
+      const response = await fetch("http://localhost:5000/api/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          reservationId: selectedRoom.reservationId,
+          amount: Number(amountRaw),
+          payment_method: methodMap[paymentMethod] || "Card",
+          status: "Completed",
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Payment failed");
+      }
+
+      showToast("Payment successful. Booking confirmed.", "success");
+      onNavigate("dashboard", {
+        ...selectedRoom,
+        paymentId: data.paymentId,
+        status: "Confirmed",
+      });
+    } catch (err) {
+      console.error(err);
+      showToast(err.message, "error");
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -26,7 +78,6 @@ function Payment({ onNavigate, room }) {
       </div>
 
       <div className="payment-layout">
-        
         {/* LEFT COLUMN: Billing Info */}
         <div className="billing-section">
           <h2>Billing Information</h2>
@@ -43,16 +94,17 @@ function Payment({ onNavigate, room }) {
             <label>Billing Address</label>
             <input type="text" placeholder="Street address, City" />
 
-            <div className="policy-check" style={{marginTop: '20px'}}>
-               <input type="checkbox" id="policy" />
-               <label htmlFor="policy">I agree to cancellation and refund policy</label>
+            <div className="policy-check" style={{ marginTop: "20px" }}>
+              <input type="checkbox" id="policy" />
+              <label htmlFor="policy">
+                I agree to cancellation and refund policy
+              </label>
             </div>
           </form>
         </div>
 
         {/* RIGHT COLUMN: Payment Details */}
         <div className="payment-details-section">
-          
           {/* Order Summary Card */}
           <div className="summary-card">
             <h3>Booking Summary</h3>
@@ -60,33 +112,38 @@ function Payment({ onNavigate, room }) {
               <span>Room:</span> <strong>{selectedRoom.title}</strong>
             </div>
             <div className="summary-row">
-              <span>Dates:</span> <span>Oct 08 - Oct 09</span>
+              <span>Dates:</span>{" "}
+              <span>
+                {selectedRoom.checkIn || "-"} - {selectedRoom.checkOut || "-"}
+              </span>
             </div>
             <div className="summary-row total">
-              <span>Total to pay:</span> 
+              <span>Total to pay:</span>
               <span>LKR {selectedRoom.price}</span>
             </div>
           </div>
 
           <h3>Payment Options</h3>
-          
+
           {/* Credit Card Option */}
-          <div className={`payment-option-card ${paymentMethod === 'card' ? 'active' : ''}`} 
-               onClick={() => setPaymentMethod('card')}>
+          <div
+            className={`payment-option-card ${paymentMethod === "card" ? "active" : ""}`}
+            onClick={() => setPaymentMethod("card")}
+          >
             <div className="option-header">
               <span>Credit / Debit Card</span>
               <span className="icons">💳</span>
             </div>
-            
+
             {/* Show inputs only if Card is selected */}
-            {paymentMethod === 'card' && (
+            {paymentMethod === "card" && (
               <div className="card-inputs">
                 <label>Cardholder Name</label>
                 <input type="text" />
-                
+
                 <label>Card Number</label>
                 <input type="text" placeholder="0000 0000 0000 0000" />
-                
+
                 <div className="row-inputs">
                   <div>
                     <label>Expiry</label>
@@ -102,28 +159,38 @@ function Payment({ onNavigate, room }) {
           </div>
 
           {/* PayPal Option */}
-          <div className={`payment-option-card ${paymentMethod === 'paypal' ? 'active' : ''}`}
-               onClick={() => setPaymentMethod('paypal')}>
-             <div className="option-header">
+          <div
+            className={`payment-option-card ${paymentMethod === "paypal" ? "active" : ""}`}
+            onClick={() => setPaymentMethod("paypal")}
+          >
+            <div className="option-header">
               <span>Paypal</span>
               <span className="icons">🅿️</span>
             </div>
           </div>
 
           {/* Bank Transfer Option */}
-          <div className={`payment-option-card ${paymentMethod === 'bank' ? 'active' : ''}`}
-               onClick={() => setPaymentMethod('bank')}>
-             <div className="option-header">
+          <div
+            className={`payment-option-card ${paymentMethod === "bank" ? "active" : ""}`}
+            onClick={() => setPaymentMethod("bank")}
+          >
+            <div className="option-header">
               <span>Bank Transfer</span>
               <span className="icons">🏦</span>
             </div>
           </div>
 
           <div className="payment-actions">
-            <button className="btn-pay" onClick={handlePay}>Pay Now</button>
-            <button className="btn-cancel-pay" onClick={() => onNavigate('booking')}>Cancel</button>
+            <button className="btn-pay" disabled={isPaying} onClick={handlePay}>
+              {isPaying ? "Processing..." : "Pay Now"}
+            </button>
+            <button
+              className="btn-cancel-pay"
+              onClick={() => onNavigate("booking")}
+            >
+              Cancel
+            </button>
           </div>
-
         </div>
       </div>
     </div>

@@ -25,6 +25,7 @@ CREATE TABLE Guest (
     nic_or_passport VARCHAR(20) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(15) NOT NULL,
     address TEXT,
     loyalty_points INT DEFAULT 0,
@@ -94,6 +95,14 @@ CREATE TABLE Payment (
     FOREIGN KEY (reservationId) REFERENCES Reservation(reservationId) ON DELETE CASCADE,
     INDEX idx_payment_status (status),
     INDEX idx_payment_date (date)
+);
+
+-- TABLE: PaymentGatewaySettings
+CREATE TABLE PaymentGatewaySettings (
+    provider VARCHAR(50) PRIMARY KEY,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    config_json TEXT,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- TABLE: Inventory
@@ -235,9 +244,9 @@ VALUES
     ('987654321', 'Jane Receptionist', '0777654321', 'jane@hotel.com', 'Receptionist', 'jane', SHA2('jane123', 256), '1995-03-20', '456 Receptionist Ave');
 
 -- INSERT Sample Guest
-INSERT INTO Guest (nic_or_passport, name, email, phone, address)
+INSERT INTO Guest (nic_or_passport, name, email, password_hash, phone, address)
 VALUES 
-    ('PAS123456', 'Michael Johnson', 'michael@example.com', '0712345678', '789 Guest Lane');
+    ('PAS123456', 'Michael Johnson', 'michael@example.com', SHA2('guest123', 256), '0712345678', '789 Guest Lane');
 
 -- INSERT Sample Inventory
 INSERT INTO Inventory (name, category, price, quantity, restock_level, description)

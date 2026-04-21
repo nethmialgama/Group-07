@@ -1,18 +1,37 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const pool = require('../db');
+const pool = require("../db");
+const { authenticate } = require("../middleware/auth");
 
 // POST /api/reservations - create a reservation
-router.post('/', async (req, res) => {
+router.post("/", authenticate, async (req, res) => {
   const { guestId, roomId, checkIn, checkOut, staffId } = req.body;
   if (!guestId || !roomId || !checkIn || !checkOut) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  if (
+    req.user.userType === "guest" &&
+    Number(guestId) !== Number(req.user.id)
+  ) {
+    return res
+      .status(403)
+      .json({ error: "You can only create reservations for your own account" });
   }
 
   try {
     // Get room price
-    const [roomRows] = await pool.query('SELECT roomPrice FROM Room WHERE roomId = ?', [roomId]);
-    if (roomRows.length === 0) return res.status(400).json({ error: 'Invalid roomId' });
+    const [roomRows] = await pool.query(
+      "SELECT roomPrice, status FROM Room WHERE roomId = ?",
+      [roomId],
+    );
+    if (roomRows.length === 0)
+      return res.status(400).json({ error: "Invalid roomId" });
+    if (roomRows[0].status !== "Available") {
+      return res
+        .status(400)
+        .json({ error: "Room is not available for booking" });
+    }
     const roomPrice = parseFloat(roomRows[0].roomPrice || 0);
 
     const inDate = new Date(checkIn);
@@ -24,16 +43,19 @@ router.post('/', async (req, res) => {
     const [result] = await pool.query(
       `INSERT INTO Reservation (checkIn, checkOut, booking_date, status, total_price, guestId, roomId, staffId)
        VALUES (?, ?, NOW(), 'Confirmed', ?, ?, ?, ?)`,
-      [checkIn, checkOut, totalPrice, totalPrice, guestId, roomId, staffId || null]
+      [checkIn, checkOut, totalPrice, guestId, roomId, staffId || null],
     );
 
     // Optionally update room status to 'Occupied'
-    await pool.query('UPDATE Room SET status = ? WHERE roomId = ?', ['Occupied', roomId]);
+    await pool.query("UPDATE Room SET status = ? WHERE roomId = ?", [
+      "Occupied",
+      roomId,
+    ]);
 
     res.status(201).json({ reservationId: result.insertId, totalPrice });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Database error' });
+    res.status(500).json({ error: "Database error" });
   }
 });
 

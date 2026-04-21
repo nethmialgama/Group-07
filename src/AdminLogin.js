@@ -1,26 +1,55 @@
 // src/AdminLogin.js
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { showToast } from "./toast";
 
-function AdminLogin({ onNavigate }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+function AdminLogin({ onNavigate, onAdminLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Simple mock validation for demonstration
-    if (email === 'admin@smarthotel.com' && password === 'admin123') {
-      alert('Admin Login Successful!');
-      onNavigate('admin-dashboard'); // We will build this dashboard next
-    } else {
-      alert('Invalid Admin Credentials! (Try: admin@smarthotel.com / admin123)');
+    setLoading(true);
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        showToast(data.error || "Admin login failed", "error");
+        return;
+      }
+
+      if (data.role !== "Admin") {
+        showToast("This account is not an admin account.", "error");
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify(data));
+      localStorage.setItem("role", data.role);
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+
+      showToast("Admin login successful", "success");
+      onAdminLogin(data);
+    } catch (err) {
+      console.error(err);
+      showToast("Connection error. Is the backend running?", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="page-container admin-login-container">
       <div className="admin-login-overlay"></div>
-      
+
       <div className="admin-login-card">
         <div className="admin-header">
           <h1>Admin Login</h1>
@@ -32,8 +61,8 @@ function AdminLogin({ onNavigate }) {
             <label>Email/Username</label>
             <div className="input-wrapper">
               <span className="input-icon">✉️</span>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 placeholder="admin@smarthotel.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -46,14 +75,14 @@ function AdminLogin({ onNavigate }) {
             <label>Password</label>
             <div className="input-wrapper">
               <span className="input-icon">🔒</span>
-              <input 
-                type={showPassword ? "text" : "password"} 
+              <input
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <span 
+              <span
                 className="toggle-password"
                 onClick={() => setShowPassword(!showPassword)}
               >
@@ -70,11 +99,13 @@ function AdminLogin({ onNavigate }) {
             <span className="forgot-pass">Forgot password?</span>
           </div>
 
-          <button type="submit" className="btn-admin-login">Login</button>
+          <button type="submit" className="btn-admin-login" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
+          </button>
         </form>
 
         <div className="back-home">
-          <span onClick={() => onNavigate('home')}>Back to Home</span>
+          <span onClick={() => onNavigate("home")}>Back to Home</span>
         </div>
       </div>
     </div>

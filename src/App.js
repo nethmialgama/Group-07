@@ -25,6 +25,8 @@ import AdminDashboard from "./AdminDashboard";
 import AdminRooms from "./AdminRooms";
 import AdminUsers from "./AdminUsers";
 import AdminUserView from "./AdminUserView";
+import AdminPaymentSettings from "./AdminPaymentSettings";
+import { clearStoredAuth, getStoredAuth } from "./auth";
 
 function App() {
   // 1. Initialize State
@@ -37,7 +39,10 @@ function App() {
   const [postLoginTarget, setPostLoginTarget] = useState(null);
 
   // NEW: Authentication State
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const initialAuth = getStoredAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(!!initialAuth.token);
+  const [role, setRole] = useState(initialAuth.role || "");
+  const [selectedAdminUser, setSelectedAdminUser] = useState(null);
 
   // 2. Handle Browser "Back" Button
   useEffect(() => {
@@ -56,12 +61,35 @@ function App() {
 
   // 3. Navigation Handler
   const handleNavigation = (page, data = null) => {
+    const protectedUserPages = [
+      "booking",
+      "payment",
+      "dashboard",
+      "cancel",
+      "profile-settings",
+    ];
+    const adminPages = [
+      "admin-dashboard",
+      "admin-rooms",
+      "admin-users",
+      "admin-user-view",
+      "admin-payments",
+    ];
+
     // Require authentication before entering booking flow.
-    if (page === "booking" && !isLoggedIn) {
-      setPostLoginTarget({ page: "booking", room: data });
-      showToast("Please login first to book a room.", "warning");
+    if (protectedUserPages.includes(page) && !isLoggedIn) {
+      setPostLoginTarget({ page, room: data });
+      showToast("Please login first.", "warning");
       setCurrentPage("login");
       window.history.pushState({ page: "login" }, "", "#login");
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    if (adminPages.includes(page) && role !== "Admin") {
+      showToast("Admin access required.", "error");
+      setCurrentPage("admin-login");
+      window.history.pushState({ page: "admin-login" }, "", "#admin-login");
       window.scrollTo(0, 0);
       return;
     }
@@ -69,14 +97,18 @@ function App() {
     setCurrentPage(page);
     if (data) {
       setSelectedRoom(data);
+      if (page === "admin-user-view") {
+        setSelectedAdminUser(data);
+      }
     }
     window.history.pushState({ page, room: data }, "", `#${page}`);
     window.scrollTo(0, 0);
   };
 
   // 4. Auth Handlers (NEW)
-  const handleUserLogin = () => {
+  const handleUserLogin = (userData) => {
     setIsLoggedIn(true);
+    setRole(userData?.role || localStorage.getItem("role") || "Guest");
 
     if (postLoginTarget) {
       const target = postLoginTarget;
@@ -85,11 +117,17 @@ function App() {
       return;
     }
 
-    handleNavigation("dashboard");
+    if ((userData?.role || localStorage.getItem("role")) === "Admin") {
+      handleNavigation("admin-dashboard");
+    } else {
+      handleNavigation("dashboard");
+    }
   };
 
   const handleUserLogout = () => {
+    clearStoredAuth();
     setIsLoggedIn(false);
+    setRole("");
     handleNavigation("home");
   };
 
@@ -97,19 +135,64 @@ function App() {
 
   // --- ADMIN PAGES ---
   if (currentPage === "admin-login") {
-    return <AdminLogin onNavigate={handleNavigation} />;
+    return (
+      <AdminLogin
+        onNavigate={handleNavigation}
+        onAdminLogin={handleUserLogin}
+      />
+    );
   }
   if (currentPage === "admin-dashboard") {
+    if (role !== "Admin")
+      return (
+        <AdminLogin
+          onNavigate={handleNavigation}
+          onAdminLogin={handleUserLogin}
+        />
+      );
     return <AdminDashboard onNavigate={handleNavigation} />;
   }
   if (currentPage === "admin-rooms") {
+    if (role !== "Admin")
+      return (
+        <AdminLogin
+          onNavigate={handleNavigation}
+          onAdminLogin={handleUserLogin}
+        />
+      );
     return <AdminRooms onNavigate={handleNavigation} />;
   }
   if (currentPage === "admin-users") {
+    if (role !== "Admin")
+      return (
+        <AdminLogin
+          onNavigate={handleNavigation}
+          onAdminLogin={handleUserLogin}
+        />
+      );
     return <AdminUsers onNavigate={handleNavigation} />;
   }
   if (currentPage === "admin-user-view") {
-    return <AdminUserView onNavigate={handleNavigation} />;
+    if (role !== "Admin")
+      return (
+        <AdminLogin
+          onNavigate={handleNavigation}
+          onAdminLogin={handleUserLogin}
+        />
+      );
+    return (
+      <AdminUserView onNavigate={handleNavigation} user={selectedAdminUser} />
+    );
+  }
+  if (currentPage === "admin-payments") {
+    if (role !== "Admin")
+      return (
+        <AdminLogin
+          onNavigate={handleNavigation}
+          onAdminLogin={handleUserLogin}
+        />
+      );
+    return <AdminPaymentSettings onNavigate={handleNavigation} />;
   }
 
   // --- USER AUTH PAGES ---
@@ -463,6 +546,8 @@ function App() {
 
 // UPDATED NAVBAR: Shows different buttons based on login status
 function Navbar({ onNavigate, isLoggedIn, onLogout }) {
+  const role = localStorage.getItem("role");
+
   return (
     <nav className="navbar">
       <div className="logo" onClick={() => onNavigate("home")}>
@@ -492,9 +577,11 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
           <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             <span
               style={{ fontWeight: "bold", cursor: "pointer", color: "#333" }}
-              onClick={() => onNavigate("dashboard")}
+              onClick={() =>
+                onNavigate(role === "Admin" ? "admin-dashboard" : "dashboard")
+              }
             >
-              👤 My Dashboard
+              👤 {role === "Admin" ? "Admin Dashboard" : "My Dashboard"}
             </span>
             <button
               className="register-btn"
