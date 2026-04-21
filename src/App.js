@@ -43,6 +43,44 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialAuth.token);
   const [role, setRole] = useState(initialAuth.role || "");
   const [selectedAdminUser, setSelectedAdminUser] = useState(null);
+  const [featuredRooms, setFeaturedRooms] = useState([]);
+
+  useEffect(() => {
+    const loadFeaturedRooms = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/rooms");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load featured rooms");
+        }
+
+        const mapped = data
+          .filter((room) => room.status === "Available")
+          .sort((a, b) => Number(b.roomId) - Number(a.roomId))
+          .slice(0, 3)
+          .map((room, idx) => ({
+            id: room.roomId,
+            roomId: room.roomId,
+            title: `${room.roomType} Room`,
+            price: `LKR ${Number(room.roomPrice || 0).toLocaleString()}`,
+            rawPrice: Number(room.roomPrice || 0).toLocaleString(),
+            rating: (4.2 + (idx % 4) * 0.2).toFixed(1),
+            image:
+              "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
+            tags: (room.amenities || "Wi-Fi, AC")
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
+          }));
+
+        setFeaturedRooms(mapped);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadFeaturedRooms();
+  }, []);
 
   // 2. Handle Browser "Back" Button
   useEffect(() => {
@@ -453,84 +491,35 @@ function App() {
         </div>
 
         <div className="room-grid">
-          <RoomCard
-            title="Deluxe Double Room"
-            price="LKR 6,000"
-            rating="4.6"
-            image="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80"
-            onViewDetails={() =>
-              handleNavigation("room-details", {
-                title: "Deluxe Double Room",
-                price: "6,000",
-                image:
-                  "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
-                rating: 4.6,
-                tags: ["Wi-Fi", "AC", "Mini Fridge", "Balcony"],
-              })
-            }
-            onBook={() =>
-              handleNavigation("booking", {
-                title: "Deluxe Double Room",
-                price: "6,000",
-                image:
-                  "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
-                rating: 4.6,
-                tags: ["Wi-Fi", "AC"],
-              })
-            }
-          />
-          <RoomCard
-            title="Superior Room"
-            price="LKR 8,500"
-            rating="4.3"
-            image="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=500&q=80"
-            onViewDetails={() =>
-              handleNavigation("room-details", {
-                title: "Superior Room",
-                price: "8,500",
-                image:
-                  "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=500&q=80",
-                rating: 4.3,
-                tags: ["Wi-Fi", "AC", "Smart TV", "Breakfast"],
-              })
-            }
-            onBook={() =>
-              handleNavigation("booking", {
-                title: "Superior Room",
-                price: "8,500",
-                image:
-                  "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=500&q=80",
-                rating: 4.3,
-                tags: ["Wi-Fi", "AC", "Smart TV"],
-              })
-            }
-          />
-          <RoomCard
-            title="Family Room"
-            price="LKR 10,000"
-            rating="4.7"
-            image="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80"
-            onViewDetails={() =>
-              handleNavigation("room-details", {
-                title: "Family Room",
-                price: "10,000",
-                image:
-                  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80",
-                rating: 4.7,
-                tags: ["Wi-Fi", "AC", "Dining"],
-              })
-            }
-            onBook={() =>
-              handleNavigation("booking", {
-                title: "Family Room",
-                price: "10,000",
-                image:
-                  "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80",
-                rating: 4.7,
-                tags: ["Wi-Fi", "AC", "Dining"],
-              })
-            }
-          />
+          {featuredRooms.map((room) => (
+            <RoomCard
+              key={room.id}
+              title={room.title}
+              price={room.price}
+              rating={room.rating}
+              image={room.image}
+              onViewDetails={() =>
+                handleNavigation("room-details", {
+                  roomId: room.roomId,
+                  title: room.title,
+                  price: room.rawPrice,
+                  image: room.image,
+                  rating: Number(room.rating),
+                  tags: room.tags,
+                })
+              }
+              onBook={() =>
+                handleNavigation("booking", {
+                  roomId: room.roomId,
+                  title: room.title,
+                  price: room.rawPrice,
+                  image: room.image,
+                  rating: Number(room.rating),
+                  tags: room.tags,
+                })
+              }
+            />
+          ))}
         </div>
       </section>
 
