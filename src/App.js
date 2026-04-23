@@ -18,6 +18,7 @@ import Contact from "./Contact";
 import ProfileSettings from "./ProfileSettings";
 import Reviews from "./Reviews";
 import VirtualTour from "./VirtualTour";
+import AccountAvatarMenu from "./AccountAvatarMenu";
 
 // --- ADMIN IMPORTS ---
 import AdminLogin from "./AdminLogin";
@@ -192,7 +193,12 @@ function App() {
           onAdminLogin={handleUserLogin}
         />
       );
-    return <AdminDashboard onNavigate={handleNavigation} />;
+    return (
+      <AdminDashboard
+        onNavigate={handleNavigation}
+        onLogout={handleUserLogout}
+      />
+    );
   }
   if (currentPage === "admin-rooms") {
     if (role !== "Admin")
@@ -202,7 +208,9 @@ function App() {
           onAdminLogin={handleUserLogin}
         />
       );
-    return <AdminRooms onNavigate={handleNavigation} />;
+    return (
+      <AdminRooms onNavigate={handleNavigation} onLogout={handleUserLogout} />
+    );
   }
   if (currentPage === "admin-users") {
     if (role !== "Admin")
@@ -212,7 +220,9 @@ function App() {
           onAdminLogin={handleUserLogin}
         />
       );
-    return <AdminUsers onNavigate={handleNavigation} />;
+    return (
+      <AdminUsers onNavigate={handleNavigation} onLogout={handleUserLogout} />
+    );
   }
   if (currentPage === "admin-user-view") {
     if (role !== "Admin")
@@ -223,7 +233,11 @@ function App() {
         />
       );
     return (
-      <AdminUserView onNavigate={handleNavigation} user={selectedAdminUser} />
+      <AdminUserView
+        onNavigate={handleNavigation}
+        onLogout={handleUserLogout}
+        user={selectedAdminUser}
+      />
     );
   }
   if (currentPage === "admin-payments") {
@@ -234,7 +248,12 @@ function App() {
           onAdminLogin={handleUserLogin}
         />
       );
-    return <AdminPaymentSettings onNavigate={handleNavigation} />;
+    return (
+      <AdminPaymentSettings
+        onNavigate={handleNavigation}
+        onLogout={handleUserLogout}
+      />
+    );
   }
 
   // --- USER AUTH PAGES ---
@@ -324,12 +343,7 @@ function App() {
           isLoggedIn={isLoggedIn}
           onLogout={handleUserLogout}
         />
-        {/* UPDATED: Pass onLogout so the dashboard logout button works */}
-        <Dashboard
-          onNavigate={handleNavigation}
-          recentBooking={selectedRoom}
-          onLogout={handleUserLogout}
-        />
+        <Dashboard onNavigate={handleNavigation} recentBooking={selectedRoom} />
         <Footer onNavigate={handleNavigation} />
       </div>
     );
@@ -599,24 +613,11 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
 
       <div className="nav-auth">
         {isLoggedIn ? (
-          // IF LOGGED IN: Show Dashboard & Logout
-          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-            <span
-              style={{ fontWeight: "bold", cursor: "pointer", color: "#333" }}
-              onClick={() =>
-                onNavigate(role === "Admin" ? "admin-dashboard" : "dashboard")
-              }
-            >
-              👤 {role === "Admin" ? "Admin Dashboard" : "My Dashboard"}
-            </span>
-            <button
-              className="register-btn"
-              style={{ backgroundColor: "#ef4444" }}
-              onClick={onLogout}
-            >
-              Logout
-            </button>
-          </div>
+          <AccountAvatarMenu
+            onNavigate={onNavigate}
+            onLogout={onLogout}
+            role={role}
+          />
         ) : (
           // IF LOGGED OUT: Show Login & Register
           <>

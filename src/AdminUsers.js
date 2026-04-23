@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import AdminSidebar from "./AdminSidebar";
+import AccountAvatarMenu from "./AccountAvatarMenu";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
 
-function AdminUsers({ onNavigate }) {
+function AdminUsers({ onNavigate, onLogout }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +68,11 @@ function AdminUsers({ onNavigate }) {
       <div className="admin-content">
         <div className="admin-header-row">
           <h2>User Management</h2>
-          <div className="admin-user-profile">👤 Admin</div>
+          <AccountAvatarMenu
+            onNavigate={onNavigate}
+            onLogout={onLogout}
+            role="Admin"
+          />
         </div>
 
         <div className="action-bar">

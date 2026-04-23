@@ -1,6 +1,6 @@
 // src/ProfileSettings.js
 import React, { useEffect, useState } from "react";
-import { getAuthHeaders } from "./auth";
+import { getAuthHeaders, getStoredAuth } from "./auth";
 import { showToast } from "./toast";
 
 function ProfileSettings({ onNavigate, onLogout }) {
@@ -10,6 +10,9 @@ function ProfileSettings({ onNavigate, onLogout }) {
     phone: "",
   });
   const [saving, setSaving] = useState(false);
+  const role = getStoredAuth().role || "Guest";
+  const avatarSrc =
+    role === "Admin" ? "/images/profile1.png" : "/images/profile2.png";
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -84,7 +87,9 @@ function ProfileSettings({ onNavigate, onLogout }) {
         <div className="settings-left-col">
           {/* Card 1: Profile Header */}
           <div className="settings-card profile-header-card">
-            <div className="avatar-circle-large">N</div>
+            <div className="avatar-circle-large">
+              <img src={avatarSrc} alt="Profile" />
+            </div>
             <div className="profile-text-group">
               <h2>{profile.name || "Guest User"}</h2>
               <p>{profile.email || "-"}</p>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AdminSidebar from "./AdminSidebar";
+import AccountAvatarMenu from "./AccountAvatarMenu";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
 
@@ -9,7 +10,7 @@ const DEFAULT_GATEWAYS = [
   { provider: "bank", isEnabled: false, config: { accountNumber: "" } },
 ];
 
-function AdminPaymentSettings({ onNavigate }) {
+function AdminPaymentSettings({ onNavigate, onLogout }) {
   const [gateways, setGateways] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,7 +84,11 @@ function AdminPaymentSettings({ onNavigate }) {
       <div className="admin-content">
         <div className="admin-header-row">
           <h2>Payment Gateway Settings</h2>
-          <div className="admin-user-profile">👤 Admin</div>
+          <AccountAvatarMenu
+            onNavigate={onNavigate}
+            onLogout={onLogout}
+            role="Admin"
+          />
         </div>
 
         {loading ? (

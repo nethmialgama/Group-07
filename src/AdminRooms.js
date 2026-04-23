@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import AdminSidebar from "./AdminSidebar";
+import AccountAvatarMenu from "./AccountAvatarMenu";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
 import { useEffect } from "react";
 
-function AdminRooms({ onNavigate }) {
+function AdminRooms({ onNavigate, onLogout }) {
   const [rooms, setRooms] = useState([]);
   const [editingRoomId, setEditingRoomId] = useState(null);
   const [form, setForm] = useState({
@@ -97,7 +98,11 @@ function AdminRooms({ onNavigate }) {
       <div className="admin-content">
         <div className="admin-header-row">
           <h2>Room Management</h2>
-          <div className="admin-user-profile">👤 Admin</div>
+          <AccountAvatarMenu
+            onNavigate={onNavigate}
+            onLogout={onLogout}
+            role="Admin"
+          />
         </div>
 
         <div className="action-bar">

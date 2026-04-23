@@ -49,6 +49,76 @@ body {
   gap: 15px;
 }
 
+.account-avatar-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.account-avatar-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-avatar-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid #2563eb;
+  object-fit: cover;
+  background: #e5eefc;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+}
+
+.account-avatar-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  padding: 10px;
+  z-index: 1200;
+}
+
+.account-avatar-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  padding: 6px 10px 10px;
+}
+
+.account-avatar-action {
+  width: 100%;
+  border: none;
+  background: #f8fafc;
+  color: #111827;
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.account-avatar-action:hover {
+  background: #e0e7ff;
+  transform: translateY(-1px);
+}
+
+.account-avatar-logout {
+  color: #b91c1c;
+}
+
 .login-link {
   text-decoration: none;
   color: #2563eb;
@@ -1568,6 +1638,12 @@ body {
   gap: 10px;
 }
 
+.admin-user-view-header {
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
 .user-icon {
   font-size: 1.5rem;
 }
@@ -2716,6 +2792,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.avatar-circle-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-text-group {

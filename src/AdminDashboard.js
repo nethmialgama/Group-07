@@ -1,10 +1,11 @@
 // src/AdminDashboard.js
 import React, { useEffect, useState } from "react";
 import AdminSidebar from "./AdminSidebar"; // <--- Import the new sidebar
+import AccountAvatarMenu from "./AccountAvatarMenu";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
 
-function AdminDashboard({ onNavigate }) {
+function AdminDashboard({ onNavigate, onLogout }) {
   const [stats, setStats] = useState([
     { title: "Rooms", value: "0", icon: "🛏️" },
     { title: "Bookings", value: "0", icon: "📅" },
@@ -80,9 +81,11 @@ function AdminDashboard({ onNavigate }) {
       <div className="admin-content">
         <div className="admin-header-row">
           <h2>Admin Dashboard</h2>
-          <div className="admin-user-profile">
-            <span className="user-icon">👤</span> Admin
-          </div>
+          <AccountAvatarMenu
+            onNavigate={onNavigate}
+            onLogout={onLogout}
+            role="Admin"
+          />
         </div>
 
         {/* Stats Grid */}
