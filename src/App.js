@@ -669,19 +669,6 @@ function Footer({ onNavigate }) {
           >
             Reviews
           </p>
-          {/* Secret Admin Link */}
-          <p
-            onClick={() => onNavigate("admin-login")}
-            style={{
-              color: "#4f46e5",
-              fontWeight: "bold",
-              marginTop: "15px",
-              cursor: "pointer",
-              fontSize: "0.85rem",
-            }}
-          >
-            Admin Login
-          </p>
         </div>
         <div className="footer-column">
           <p>📞 +94 112 345 678</p>
