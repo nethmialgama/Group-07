@@ -79,6 +79,40 @@ function AdminDashboard({ onNavigate, onLogout }) {
 
       {/* Main Content */}
       <div className="admin-content">
+        <div className="admin-quick-nav">
+          <span className="admin-quick-brand">Smart Hotel</span>
+          <button
+            className="admin-quick-btn"
+            onClick={() => onNavigate("home")}
+          >
+            Home
+          </button>
+          <button
+            className="admin-quick-btn"
+            onClick={() => onNavigate("rooms")}
+          >
+            Rooms
+          </button>
+          <button
+            className="admin-quick-btn"
+            onClick={() => onNavigate("offers")}
+          >
+            Offers
+          </button>
+          <button
+            className="admin-quick-btn"
+            onClick={() => onNavigate("gallery")}
+          >
+            Gallery
+          </button>
+          <button
+            className="admin-quick-btn"
+            onClick={() => onNavigate("contact")}
+          >
+            Contact
+          </button>
+        </div>
+
         <div className="admin-header-row">
           <h2>Admin Dashboard</h2>
           <AccountAvatarMenu

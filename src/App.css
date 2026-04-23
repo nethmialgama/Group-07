@@ -1631,6 +1631,36 @@ body {
   margin-bottom: 40px;
 }
 
+.admin-quick-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.admin-quick-brand {
+  font-weight: 700;
+  color: #111827;
+  margin-right: 8px;
+}
+
+.admin-quick-btn {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #1f2937;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.admin-quick-btn:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
 .admin-user-profile {
   font-weight: 600;
   display: flex;
