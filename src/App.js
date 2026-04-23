@@ -126,7 +126,7 @@ function App() {
       return;
     }
 
-    if (adminPages.includes(page) && role !== "Admin") {
+    if (adminPages.includes(page) && role !== "Admin" && !bypassAuthGuard) {
       showToast("Admin access required.", "error");
       setCurrentPage("admin-login");
       window.history.pushState({ page: "admin-login" }, "", "#admin-login");
