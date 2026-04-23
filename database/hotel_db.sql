@@ -233,9 +233,60 @@ CREATE TABLE AuditLog (
 -- INSERT Sample Rooms
 INSERT INTO Room (roomNumber, roomType, capacity, roomPrice, amenities, description, status)
 VALUES 
-    ('101', 'Single', 1, 50.00, 'WiFi, TV, A/C', 'Cozy single room', 'Available'),
-    ('102', 'Double', 2, 75.00, 'WiFi, TV, A/C, Balcony', 'Comfortable double room', 'Available'),
-    ('201', 'Suite', 4, 150.00, 'WiFi, TV, A/C, Balcony, Kitchen, Jacuzzi', 'Luxury suite', 'Available');
+('001','Single',1,40.00,'WiFi, TV','Budget single room (Non-AC, Ground Floor)','Available'),
+('002','Single',1,40.00,'WiFi, TV','Budget single room (Non-AC, Ground Floor)','Available'),
+('003','Double',2,55.00,'WiFi, TV','Budget double room (Non-AC, Ground Floor)','Available'),
+('004','Double',2,55.00,'WiFi, TV','Budget double room (Non-AC, Ground Floor)','Available'),
+('005','Single',1,40.00,'WiFi, TV','Budget single room (Non-AC, Ground Floor)','Available'),
+('006','Family',3,70.00,'WiFi, TV','Family room (Non-AC, Ground Floor)','Available'),
+('007','Double',2,55.00,'WiFi, TV','Budget double room (Non-AC, Ground Floor)','Available'),
+('008','Single',1,40.00,'WiFi, TV','Budget single room (Non-AC, Ground Floor)','Available'),
+('009','Double',2,55.00,'WiFi, TV','Budget double room (Non-AC, Ground Floor)','Available'),
+('010','Single',1,40.00,'WiFi, TV','Budget single room (Non-AC, Ground Floor)','Available'),
+
+('101','Single',1,60.00,'WiFi, TV, A/C','Standard single AC room (1st Floor)','Available'),
+('102','Double',2,75.00,'WiFi, TV, A/C','Standard double AC room (1st Floor)','Available'),
+('103','Single',1,60.00,'WiFi, TV, A/C','Standard single AC room (1st Floor)','Available'),
+('104','Double',2,75.00,'WiFi, TV, A/C','Standard double AC room (1st Floor)','Available'),
+('105','Family',3,90.00,'WiFi, TV, A/C','Family AC room (1st Floor)','Available'),
+('106','Single',1,60.00,'WiFi, TV, A/C','Standard single AC room (1st Floor)','Available'),
+('107','Double',2,75.00,'WiFi, TV, A/C','Standard double AC room (1st Floor)','Available'),
+('108','Single',1,60.00,'WiFi, TV, A/C','Standard single AC room (1st Floor)','Available'),
+('109','Double',2,75.00,'WiFi, TV, A/C','Standard double AC room (1st Floor)','Available'),
+('110','Single',1,60.00,'WiFi, TV, A/C','Standard single AC room (1st Floor)','Available'),
+
+('201','Single',1,90.00,'WiFi, TV, A/C, Balcony','Deluxe single room with balcony','Available'),
+('202','Double',2,110.00,'WiFi, TV, A/C, Balcony','Deluxe double room with balcony','Available'),
+('203','Single',1,95.00,'WiFi, TV, A/C, City View','Deluxe single room with city view','Available'),
+('204','Double',2,115.00,'WiFi, TV, A/C, City View','Deluxe double room with city view','Available'),
+('205','Family',3,130.00,'WiFi, TV, A/C','Deluxe family room','Available'),
+('206','Single',1,90.00,'WiFi, TV, A/C, Balcony','Deluxe single room with balcony','Available'),
+('207','Double',2,110.00,'WiFi, TV, A/C, Balcony','Deluxe double room with balcony','Available'),
+('208','Single',1,95.00,'WiFi, TV, A/C, City View','Deluxe single room with city view','Available'),
+('209','Double',2,115.00,'WiFi, TV, A/C, City View','Deluxe double room with city view','Available'),
+('210','Single',1,90.00,'WiFi, TV, A/C, Balcony','Deluxe single room with balcony','Available'),
+
+('301','Single',1,120.00,'WiFi, TV, A/C, Balcony','Executive single room','Available'),
+('302','Double',2,140.00,'WiFi, TV, A/C, Balcony','Executive double room','Available'),
+('303','Single',1,130.00,'WiFi, TV, A/C, Sea View','Executive single room with sea view','Available'),
+('304','Double',2,150.00,'WiFi, TV, A/C, Sea View','Executive double room with sea view','Available'),
+('305','Family',3,170.00,'WiFi, TV, A/C','Executive family room','Available'),
+('306','Single',1,120.00,'WiFi, TV, A/C, Balcony','Executive single room','Available'),
+('307','Double',2,140.00,'WiFi, TV, A/C, Balcony','Executive double room','Available'),
+('308','Single',1,130.00,'WiFi, TV, A/C, Sea View','Executive single room with sea view','Available'),
+('309','Double',2,150.00,'WiFi, TV, A/C, Sea View','Executive double room with sea view','Available'),
+('310','Single',1,120.00,'WiFi, TV, A/C, Balcony','Executive single room','Available'),
+
+('401','Single',1,180.00,'WiFi, TV, A/C','Junior suite','Available'),
+('402','Double',2,220.00,'WiFi, TV, A/C, Living Room','Suite with living room','Available'),
+('403','Single',1,200.00,'WiFi, TV, A/C, Kitchen','Suite with kitchen','Available'),
+('404','Double',2,230.00,'WiFi, TV, A/C, Kitchen','Suite with kitchen','Available'),
+('405','Family',3,260.00,'WiFi, TV, A/C, Kitchen','Family suite','Available'),
+('406','Single',1,180.00,'WiFi, TV, A/C','Junior suite','Available'),
+('407','Double',2,220.00,'WiFi, TV, A/C, Living Room','Suite with living room','Available'),
+('408','Single',1,200.00,'WiFi, TV, A/C, Kitchen','Suite with kitchen','Available'),
+('409','Double',2,230.00,'WiFi, TV, A/C, Kitchen','Suite with kitchen','Available'),
+('410','Suite',4,300.00,'WiFi, TV, A/C, Balcony, Kitchen, Jacuzzi','Presidential suite','Available');
 
 -- INSERT Sample Staff
 INSERT INTO Staff (nic, name, phone, email, role, username, password_hash, birthDate, address)
