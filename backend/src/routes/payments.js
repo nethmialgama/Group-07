@@ -3,6 +3,10 @@ const router = express.Router();
 const pool = require("../db");
 const { authenticate } = require("../middleware/auth");
 const {
+  buildInvoicePDF,
+  sendInvoiceEmail,
+} = require("../services/invoiceService");
+const {
   getAdvancePaymentQuote,
   getRefundQuote,
   getPolicyTable,
@@ -196,6 +200,107 @@ router.post("/", authenticate, async (req, res) => {
         .json({ error: "Payment already exists for this reservation" });
     }
     res.status(500).json({ error: "Database error" });
+  }
+});
+
+// POST /api/payments/send-invoice
+router.post("/send-invoice", authenticate, async (req, res) => {
+  const { paymentId } = req.body;
+  if (!paymentId) return res.status(400).json({ error: "paymentId required" });
+
+  try {
+    // Load payment + reservation + guest from DB
+    const [rows] = await pool.query(
+      `SELECT p.paymentId, p.amount, p.payment_method,
+              r.reservationId, r.checkIn, r.checkOut, r.total_price,
+              rm.roomType,
+              g.name, g.email, g.phone
+       FROM Payment p
+       JOIN Reservation r  ON r.reservationId = p.reservationId
+       JOIN Room rm         ON rm.roomId       = r.roomId
+       JOIN Guest g         ON g.guestId       = r.guestId
+       WHERE p.paymentId = ?`,
+      [paymentId],
+    );
+
+    if (!rows.length)
+      return res.status(404).json({ error: "Payment not found" });
+    const row = rows[0];
+
+    // Build invoice object (matches what the frontend passes too)
+    const invoice = {
+      paymentId: row.paymentId,
+      paidAmount: Number(row.amount),
+      remaining: Math.max(0, Number(row.total_price) - Number(row.amount)),
+      title: `${row.roomType} Room`,
+      checkIn: row.checkIn,
+      checkOut: row.checkOut,
+      cardBrand: req.body.cardBrand || "",
+      cardLast4: req.body.cardLast4 || "",
+      billing: {
+        fullName: req.body.billing?.fullName || row.name,
+        email: req.body.billing?.email || row.email,
+        phone: req.body.billing?.phone || row.phone,
+        address: req.body.billing?.address || "",
+      },
+    };
+
+    await sendInvoiceEmail(invoice);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Invoice email error:", err);
+    res.status(500).json({ error: "Failed to send invoice email" });
+  }
+});
+
+// GET /api/payments/invoice-pdf/:paymentId
+router.get("/invoice-pdf/:paymentId", authenticate, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT p.paymentId, p.amount,
+              r.checkIn, r.checkOut, r.total_price,
+              rm.roomType,
+              g.name, g.email, g.phone
+       FROM Payment p
+       JOIN Reservation r  ON r.reservationId = p.reservationId
+       JOIN Room rm         ON rm.roomId       = r.roomId
+       JOIN Guest g         ON g.guestId       = r.guestId
+       WHERE p.paymentId = ?`,
+      [req.params.paymentId],
+    );
+
+    if (!rows.length)
+      return res.status(404).json({ error: "Payment not found" });
+    const row = rows[0];
+
+    const invoice = {
+      paymentId: row.paymentId,
+      paidAmount: Number(row.amount),
+      remaining: Math.max(0, Number(row.total_price) - Number(row.amount)),
+      title: `${row.roomType} Room`,
+      checkIn: row.checkIn,
+      checkOut: row.checkOut,
+      cardBrand: "",
+      cardLast4: "",
+      billing: {
+        fullName: row.name,
+        email: row.email,
+        phone: row.phone,
+        address: "",
+      },
+    };
+
+    const pdfBuffer = await buildInvoicePDF(invoice);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="SmartHotel-Invoice-${row.paymentId}.pdf"`,
+    );
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error("PDF error:", err);
+    res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
 
