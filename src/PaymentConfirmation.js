@@ -1,5 +1,4 @@
-// src/PaymentConfirmation.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { getAuthHeaders } from "./auth";
 
 function PaymentConfirmation({ onNavigate, room }) {
@@ -8,9 +7,11 @@ function PaymentConfirmation({ onNavigate, room }) {
   const [emailSending, setEmailSending] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  // Auto-send invoice email once when page loads
+  const emailSentRef = useRef(false);
+
   useEffect(() => {
-    if (data?.paymentId && !emailSent) {
+    if (data?.paymentId && !emailSentRef.current) {
+      emailSentRef.current = true;
       sendInvoiceEmail();
     }
   }, []);
