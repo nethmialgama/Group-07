@@ -1633,32 +1633,45 @@ body {
 
 .admin-quick-nav {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
+  padding: 15px 50px;
+  background-color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  margin: -40px -40px 30px;
+  position: sticky;
+  top: 0;
+  z-index: 900;
 }
 
 .admin-quick-brand {
-  font-weight: 700;
-  color: #111827;
-  margin-right: 8px;
-}
-
-.admin-quick-btn {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #1f2937;
-  padding: 7px 14px;
-  border-radius: 8px;
+  background-color: #e0e0e0;
+  padding: 8px 20px;
+  font-weight: bold;
+  color: #333;
+  text-transform: uppercase;
   cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
+  white-space: nowrap;
 }
 
-.admin-quick-btn:hover {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+.admin-quick-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-quick-links a {
+  margin: 0 20px;
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.admin-quick-links a:hover {
+  color: #2563eb;
 }
 
 .admin-user-profile {
