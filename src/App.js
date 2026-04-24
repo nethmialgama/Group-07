@@ -19,6 +19,7 @@ import ProfileSettings from "./ProfileSettings";
 import Reviews from "./Reviews";
 import VirtualTour from "./VirtualTour";
 import AccountAvatarMenu from "./AccountAvatarMenu";
+import PaymentGateway from "./PaymentGateway";
 
 // --- ADMIN IMPORTS ---
 import AdminLogin from "./AdminLogin";
@@ -104,6 +105,7 @@ function App() {
     const protectedUserPages = [
       "booking",
       "payment",
+      "payment-gateway",
       "dashboard",
       "cancel",
       "profile-settings",
@@ -333,6 +335,18 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
+  }
+
+  if (currentPage === "payment-gateway") {
+    if (!isLoggedIn)
+      return (
+        <Login
+          onLogin={handleUserLogin}
+          onBack={() => handleNavigation("home")}
+          onSignupClick={() => handleNavigation("signup")}
+        />
+      );
+    return <PaymentGateway onNavigate={handleNavigation} room={selectedRoom} />;
   }
 
   if (currentPage === "dashboard") {
