@@ -3,12 +3,7 @@ import React, { useState } from "react";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
 
-// ─── Test Cards (like Stripe test mode) ───────────────────────────────────────
-// 4242 4242 4242 4242  → Success
-// 4000 0000 0000 0002  → Card declined
-// 4000 0000 0000 9995  → Insufficient funds
-// 4000 0000 0000 0069  → Expired card
-// 4000 0000 0000 0127  → Incorrect CVV
+// ─── Test Cards ───────────────────────────────────────────────────────────────
 const TEST_CARDS = {
   4242424242424242: { result: "success" },
   4000000000000002: { result: "declined", message: "Your card was declined." },
@@ -23,7 +18,7 @@ const TEST_CARDS = {
   },
 };
 
-// ─── Luhn Algorithm (real card number validation) ─────────────────────────────
+// ─── Luhn Algorithm ───────────────────────────────────────────────────────────
 function luhnCheck(cardNumber) {
   const digits = cardNumber.replace(/\D/g, "");
   if (digits.length < 13 || digits.length > 19) return false;
@@ -41,7 +36,7 @@ function luhnCheck(cardNumber) {
   return sum % 10 === 0;
 }
 
-// ─── Detect card brand from first digits ──────────────────────────────────────
+// ─── Card brand detection ─────────────────────────────────────────────────────
 function detectCardBrand(number) {
   const n = number.replace(/\s/g, "");
   if (/^4/.test(n)) return { brand: "Visa", icon: "💳" };
@@ -51,7 +46,7 @@ function detectCardBrand(number) {
   return { brand: "", icon: "💳" };
 }
 
-// ─── Format card number with spaces ───────────────────────────────────────────
+// ─── Formatters ───────────────────────────────────────────────────────────────
 function formatCardNumber(value) {
   return value
     .replace(/\D/g, "")
@@ -59,18 +54,31 @@ function formatCardNumber(value) {
     .replace(/(.{4})/g, "$1 ")
     .trim();
 }
-
-// ─── Format expiry MM/YY ──────────────────────────────────────────────────────
 function formatExpiry(value) {
   const digits = value.replace(/\D/g, "").slice(0, 4);
   if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2);
   return digits;
 }
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 function PaymentGateway({ onNavigate, room }) {
   const bookingData = room || null;
+  const billing = bookingData?.billing || {};
+  const amount = bookingData?.amount || 0;
 
+  // ── ALL HOOKS FIRST — before any early return ──────────────────────────────
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardName, setCardName] = useState(billing.fullName || "");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [errors, setErrors] = useState({});
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState("");
+
+  // ── Early return AFTER hooks ───────────────────────────────────────────────
   if (!bookingData || !bookingData.reservationId) {
     return (
       <div
@@ -86,27 +94,15 @@ function PaymentGateway({ onNavigate, room }) {
     );
   }
 
-  const amount = bookingData.amount || 0;
-  const billing = bookingData.billing || {};
-
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState(billing.fullName || "");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [errors, setErrors] = useState({});
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingStep, setProcessingStep] = useState("");
-
   const cardBrand = detectCardBrand(cardNumber);
 
-  // ── Validation ──────────────────────────────────────────────────────────────
+  // ── Validation ─────────────────────────────────────────────────────────────
   const validate = () => {
     const newErrors = {};
     const rawCard = cardNumber.replace(/\s/g, "");
 
-    if (!cardName.trim()) {
-      newErrors.cardName = "Cardholder name is required";
-    }
+    if (!cardName.trim()) newErrors.cardName = "Cardholder name is required";
+
     if (rawCard.length < 16) {
       newErrors.cardNumber = "Enter a valid 16-digit card number";
     } else if (!luhnCheck(rawCard)) {
@@ -127,14 +123,12 @@ function PaymentGateway({ onNavigate, room }) {
       newErrors.expiry = "This card has expired";
     }
 
-    if (cvv.length < 3) {
-      newErrors.cvv = "CVV must be 3 digits";
-    }
+    if (cvv.length < 3) newErrors.cvv = "CVV must be 3 digits";
 
     return newErrors;
   };
 
-  // ── Handle Pay ──────────────────────────────────────────────────────────────
+  // ── Handle Pay ─────────────────────────────────────────────────────────────
   const handlePay = async () => {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
@@ -145,7 +139,6 @@ function PaymentGateway({ onNavigate, room }) {
     setIsProcessing(true);
     setErrors({});
 
-    // Step 1 — Simulated gateway processing animation
     setProcessingStep("Connecting to payment network...");
     await delay(900);
     setProcessingStep("Verifying card details...");
@@ -153,11 +146,9 @@ function PaymentGateway({ onNavigate, room }) {
     setProcessingStep("Authorizing transaction...");
     await delay(900);
 
-    // Step 2 — Check test card result
     const rawCard = cardNumber.replace(/\s/g, "");
     const testCard = TEST_CARDS[rawCard];
 
-    // If it's a known decline test card
     if (testCard && testCard.result !== "success") {
       setIsProcessing(false);
       setProcessingStep("");
@@ -165,15 +156,11 @@ function PaymentGateway({ onNavigate, room }) {
       return;
     }
 
-    // Step 3 — Submit payment to your backend
     try {
       setProcessingStep("Completing payment...");
       const response = await fetch("http://localhost:5000/api/payments", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           reservationId: bookingData.reservationId,
           amount: amount,
@@ -184,14 +171,11 @@ function PaymentGateway({ onNavigate, room }) {
       });
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Payment failed");
-      }
+      if (!response.ok) throw new Error(data.error || "Payment failed");
 
       setProcessingStep("Payment successful! ✓");
       await delay(700);
 
-      // Navigate to confirmation page
       onNavigate("payment-confirmation", {
         ...bookingData,
         paymentId: data.paymentId,
@@ -210,7 +194,7 @@ function PaymentGateway({ onNavigate, room }) {
     }
   };
 
-  // ── Processing Overlay ───────────────────────────────────────────────────────
+  // ── Processing overlay ─────────────────────────────────────────────────────
   if (isProcessing) {
     return (
       <div className="processing-overlay">
@@ -223,10 +207,9 @@ function PaymentGateway({ onNavigate, room }) {
     );
   }
 
-  // ── Main UI ──────────────────────────────────────────────────────────────────
+  // ── Main render ────────────────────────────────────────────────────────────
   return (
     <div className="page-container">
-      {/* Header */}
       <div className="payment-header">
         <h1>Secure Payment</h1>
         <p>🔒 Your payment is encrypted and secure</p>
@@ -253,7 +236,6 @@ function PaymentGateway({ onNavigate, room }) {
       <div className="gateway-layout">
         {/* ── LEFT: Card Form ── */}
         <div className="card-form-section">
-          {/* Fake secure badge */}
           <div className="secure-badge">
             <span>🔒</span>
             <span>256-bit SSL Encrypted</span>
@@ -356,7 +338,7 @@ function PaymentGateway({ onNavigate, room }) {
             </div>
           </div>
 
-          {/* Test card hint — remove before final demo if you want */}
+          {/* Test card hint */}
           <div className="test-card-hint">
             <strong>Test cards:</strong>
             <br />
@@ -372,7 +354,6 @@ function PaymentGateway({ onNavigate, room }) {
         <div className="payment-details-section">
           <div className="summary-card">
             <h3>Order Summary</h3>
-
             <div className="summary-row">
               <span>Room</span>
               <strong>{bookingData.title || "Hotel Room"}</strong>
@@ -389,9 +370,7 @@ function PaymentGateway({ onNavigate, room }) {
               <span>Guest</span>
               <span>{billing.fullName || "-"}</span>
             </div>
-
             <div className="summary-divider" />
-
             <div className="summary-row total">
               <span>Total</span>
               <strong>LKR {amount.toLocaleString()}</strong>
@@ -425,11 +404,6 @@ function PaymentGateway({ onNavigate, room }) {
       </div>
     </div>
   );
-}
-
-// Small helper to create delays for the processing animation
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default PaymentGateway;

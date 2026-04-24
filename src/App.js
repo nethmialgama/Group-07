@@ -20,6 +20,7 @@ import Reviews from "./Reviews";
 import VirtualTour from "./VirtualTour";
 import AccountAvatarMenu from "./AccountAvatarMenu";
 import PaymentGateway from "./PaymentGateway";
+import PaymentConfirmation from "./PaymentConfirmation";
 
 // --- ADMIN IMPORTS ---
 import AdminLogin from "./AdminLogin";
@@ -106,6 +107,7 @@ function App() {
       "booking",
       "payment",
       "payment-gateway",
+      "payment-confirmation",
       "dashboard",
       "cancel",
       "profile-settings",
@@ -347,6 +349,20 @@ function App() {
         />
       );
     return <PaymentGateway onNavigate={handleNavigation} room={selectedRoom} />;
+  }
+
+  if (currentPage === "payment-confirmation") {
+    if (!isLoggedIn)
+      return (
+        <Login
+          onLogin={handleUserLogin}
+          onBack={() => handleNavigation("home")}
+          onSignupClick={() => handleNavigation("signup")}
+        />
+      );
+    return (
+      <PaymentConfirmation onNavigate={handleNavigation} room={selectedRoom} />
+    );
   }
 
   if (currentPage === "dashboard") {

@@ -4,9 +4,18 @@ import { showToast } from "./toast";
 import { getStoredAuth } from "./auth";
 
 function Payment({ onNavigate, room }) {
-  const selectedRoom = room || null;
+  const storedAuth = getStoredAuth();
 
-  // If no room/reservation passed, send user back to rooms
+  // ── ALL HOOKS FIRST — before any early return ──────────────────────────────
+  const [fullName, setFullName] = useState(storedAuth.name || "");
+  const [email, setEmail] = useState(storedAuth.email || "");
+  const [phone, setPhone] = useState(storedAuth.phone || "");
+  const [address, setAddress] = useState("");
+  const [agreedToPolicy, setAgreedToPolicy] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  // ── Early return AFTER hooks ───────────────────────────────────────────────
+  const selectedRoom = room || null;
   if (!selectedRoom || !selectedRoom.reservationId) {
     return (
       <div
@@ -22,16 +31,6 @@ function Payment({ onNavigate, room }) {
     );
   }
 
-  // Pre-fill billing info from logged-in user if available
-  const storedAuth = getStoredAuth();
-
-  const [fullName, setFullName] = useState(storedAuth.name || "");
-  const [email, setEmail] = useState(storedAuth.email || "");
-  const [phone, setPhone] = useState(storedAuth.phone || "");
-  const [address, setAddress] = useState("");
-  const [agreedToPolicy, setAgreedToPolicy] = useState(false);
-  const [errors, setErrors] = useState({});
-
   // Clean the raw price — strip "LKR", commas, spaces so we always get a number
   const rawAmount = Number(
     String(
@@ -41,10 +40,9 @@ function Payment({ onNavigate, room }) {
         "0",
     ).replace(/[^0-9.]/g, ""),
   );
-
   const displayPrice = rawAmount.toLocaleString();
 
-  // --- Validation ---
+  // ── Validation ─────────────────────────────────────────────────────────────
   const validate = () => {
     const newErrors = {};
     if (!fullName.trim()) newErrors.fullName = "Full name is required";
@@ -62,12 +60,9 @@ function Payment({ onNavigate, room }) {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Scroll to first error
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-
-    // Pass billing info + room info to the gateway page
     onNavigate("payment-gateway", {
       ...selectedRoom,
       billing: { fullName, email, phone, address },
@@ -75,9 +70,9 @@ function Payment({ onNavigate, room }) {
     });
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="page-container">
-      {/* Header */}
       <div className="payment-header">
         <h1>Checkout</h1>
         <p>Review your booking and enter billing details</p>
@@ -105,7 +100,6 @@ function Payment({ onNavigate, room }) {
         {/* ── LEFT: Billing Information ── */}
         <div className="billing-section">
           <h2>Billing Information</h2>
-
           <div className="billing-form">
             <label>Full Name *</label>
             <input
@@ -114,7 +108,7 @@ function Payment({ onNavigate, room }) {
               value={fullName}
               onChange={(e) => {
                 setFullName(e.target.value);
-                setErrors((prev) => ({ ...prev, fullName: "" }));
+                setErrors((p) => ({ ...p, fullName: "" }));
               }}
               className={errors.fullName ? "input-error" : ""}
             />
@@ -129,7 +123,7 @@ function Payment({ onNavigate, room }) {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                setErrors((prev) => ({ ...prev, email: "" }));
+                setErrors((p) => ({ ...p, email: "" }));
               }}
               className={errors.email ? "input-error" : ""}
             />
@@ -144,7 +138,7 @@ function Payment({ onNavigate, room }) {
               value={phone}
               onChange={(e) => {
                 setPhone(e.target.value);
-                setErrors((prev) => ({ ...prev, phone: "" }));
+                setErrors((p) => ({ ...p, phone: "" }));
               }}
               className={errors.phone ? "input-error" : ""}
             />
@@ -159,7 +153,7 @@ function Payment({ onNavigate, room }) {
               value={address}
               onChange={(e) => {
                 setAddress(e.target.value);
-                setErrors((prev) => ({ ...prev, address: "" }));
+                setErrors((p) => ({ ...p, address: "" }));
               }}
               className={errors.address ? "input-error" : ""}
             />
@@ -178,26 +172,21 @@ function Payment({ onNavigate, room }) {
               <span>Room</span>
               <strong>{selectedRoom.title || "Hotel Room"}</strong>
             </div>
-
             <div className="summary-row">
               <span>Check-in</span>
               <span>{selectedRoom.checkIn || "-"}</span>
             </div>
-
             <div className="summary-row">
               <span>Check-out</span>
               <span>{selectedRoom.checkOut || "-"}</span>
             </div>
-
             {selectedRoom.guests && (
               <div className="summary-row">
                 <span>Guests</span>
                 <span>{selectedRoom.guests}</span>
               </div>
             )}
-
             <div className="summary-divider" />
-
             <div className="summary-row total">
               <span>Total Amount</span>
               <strong>LKR {displayPrice}</strong>
@@ -219,7 +208,7 @@ function Payment({ onNavigate, room }) {
                 checked={agreedToPolicy}
                 onChange={(e) => {
                   setAgreedToPolicy(e.target.checked);
-                  setErrors((prev) => ({ ...prev, policy: "" }));
+                  setErrors((p) => ({ ...p, policy: "" }));
                 }}
               />
               <span>
