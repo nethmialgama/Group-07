@@ -3424,3 +3424,648 @@ body {
     width: 100%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PAYMENT FLOW STYLES
+   Add these to the bottom of your App.css
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Step Indicator ────────────────────────────────────────── */
+.payment-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 28px auto 36px;
+  max-width: 480px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #888;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.step.active .step-number {
+  background: #1a3c5e;
+  color: white;
+}
+
+.step.done .step-number {
+  background: #2ecc71;
+  color: white;
+}
+
+.step-label {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.step.active .step-label {
+  color: #1a3c5e;
+  font-weight: 600;
+}
+
+.step.done .step-label {
+  color: #2ecc71;
+  font-weight: 600;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: #e0e0e0;
+  margin: 0 8px;
+  margin-bottom: 20px;
+  min-width: 40px;
+}
+
+.step-line.done {
+  background: #2ecc71;
+}
+
+/* ── Payment Layout (2 columns) ────────────────────────────── */
+.payment-layout,
+.gateway-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+}
+
+@media (max-width: 768px) {
+  .payment-layout,
+  .gateway-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Billing Form ───────────────────────────────────────────── */
+.billing-section h2 {
+  font-size: 20px;
+  color: #1a3c5e;
+  margin-bottom: 20px;
+}
+
+.billing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.billing-form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  margin-top: 10px;
+}
+
+.billing-form input {
+  padding: 10px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.billing-form input:focus {
+  border-color: #1a3c5e;
+}
+
+.billing-form input.input-error {
+  border-color: #e74c3c;
+}
+
+.field-error {
+  font-size: 12px;
+  color: #e74c3c;
+  margin-top: 2px;
+}
+
+/* ── Summary Card ───────────────────────────────────────────── */
+.summary-card {
+  background: #f8fafc;
+  border: 1.5px solid #e0e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.summary-card h3 {
+  font-size: 16px;
+  color: #1a3c5e;
+  margin-bottom: 16px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+.summary-row.total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a3c5e;
+  padding-top: 12px;
+}
+
+.summary-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 10px 0;
+}
+
+.summary-note {
+  font-size: 12px;
+  color: #888;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+/* ── Policy Checkbox ────────────────────────────────────────── */
+.policy-check-box {
+  background: #f8fafc;
+  border: 1.5px solid #e0e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.policy-check-box.policy-error {
+  border-color: #e74c3c;
+  background: #fff8f8;
+}
+
+.policy-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: #444;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.policy-label input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.policy-link {
+  color: #1a3c5e;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* ── Payment Action Buttons ─────────────────────────────────── */
+.payment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-pay {
+  background: #1a3c5e;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.btn-pay:hover:not(:disabled) {
+  background: #14304d;
+}
+
+.btn-pay:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cancel-pay {
+  background: transparent;
+  color: #666;
+  border: 1.5px solid #ddd;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.btn-cancel-pay:hover {
+  border-color: #1a3c5e;
+  color: #1a3c5e;
+}
+
+/* ── Secure Badge ───────────────────────────────────────────── */
+.secure-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f0f7f0;
+  border: 1px solid #b2dfb2;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #2d6a2d;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.badge-cards {
+  margin-left: auto;
+  font-size: 12px;
+  color: #555;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* ── Card Preview ───────────────────────────────────────────── */
+.card-preview {
+  background: linear-gradient(135deg, #1a3c5e 0%, #2d6a9f 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  font-family: "Courier New", monospace;
+  box-shadow: 0 8px 24px rgba(26, 60, 94, 0.3);
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.card-preview-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-chip {
+  font-size: 20px;
+  letter-spacing: -4px;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.card-brand-label {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+.card-preview-number {
+  font-size: 20px;
+  letter-spacing: 3px;
+  text-align: center;
+  margin: 16px 0;
+  font-weight: 600;
+}
+
+.card-preview-bottom {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.card-preview-label {
+  font-size: 10px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+
+/* ── Card Number Row ────────────────────────────────────────── */
+.card-number-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-brand-icon {
+  font-size: 22px;
+}
+
+/* ── Row Inputs (Expiry + CVV) ──────────────────────────────── */
+.row-inputs {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.row-inputs label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.row-inputs input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+  box-sizing: border-box;
+}
+
+.row-inputs input:focus {
+  border-color: #1a3c5e;
+}
+
+.row-inputs input.input-error {
+  border-color: #e74c3c;
+}
+
+/* ── Test Card Hint ─────────────────────────────────────────── */
+.test-card-hint {
+  margin-top: 20px;
+  background: #fffbea;
+  border: 1px solid #f0d060;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #7a6000;
+  line-height: 1.8;
+}
+
+/* ── Processing Overlay ─────────────────────────────────────── */
+.processing-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.processing-box {
+  background: white;
+  border-radius: 16px;
+  padding: 48px 56px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  min-width: 300px;
+}
+
+.processing-spinner {
+  width: 52px;
+  height: 52px;
+  border: 5px solid #e0e8f0;
+  border-top-color: #1a3c5e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.processing-step {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a3c5e;
+  margin: 0 0 8px;
+}
+
+.processing-sub {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Invoice Card ───────────────────────────────────────────── */
+.invoice-card {
+  max-width: 760px;
+  margin: 0 auto 60px;
+  background: white;
+  border: 1.5px solid #e0e8f0;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 4px 20px rgba(26, 60, 94, 0.08);
+}
+
+.invoice-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.invoice-title {
+  font-size: 26px;
+  color: #1a3c5e;
+  margin: 0 0 4px;
+}
+
+.invoice-subtitle {
+  font-size: 13px;
+  color: #888;
+  margin: 2px 0;
+}
+
+.invoice-badge {
+  display: inline-block;
+  background: #2ecc71;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.invoice-id {
+  font-size: 14px;
+  color: #444;
+  margin: 4px 0;
+  font-weight: 600;
+}
+
+.invoice-date {
+  font-size: 13px;
+  color: #888;
+  margin: 2px 0;
+}
+
+.invoice-divider {
+  height: 1px;
+  background: #e8eef4;
+  margin: 24px 0;
+}
+
+.invoice-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 8px;
+}
+
+.invoice-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.invoice-value {
+  font-size: 14px;
+  color: #444;
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+/* ── Invoice Table ──────────────────────────────────────────── */
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.invoice-table th {
+  background: #1a3c5e;
+  color: white;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.invoice-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #444;
+}
+
+.invoice-table tbody tr:nth-child(odd) {
+  background: #f8fafc;
+}
+
+.invoice-remaining-row td {
+  color: #e07b00;
+  font-style: italic;
+}
+
+.invoice-total-row td {
+  background: #1a3c5e !important;
+  color: white !important;
+  font-size: 15px;
+  padding: 14px;
+}
+
+/* ── Invoice Email Row ──────────────────────────────────────── */
+.invoice-email-row {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.invoice-email-status {
+  font-size: 14px;
+  margin: 0;
+}
+
+.invoice-email-status.sending {
+  color: #888;
+}
+
+.invoice-email-status.sent {
+  color: #2d6a2d;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #1a3c5e;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+/* ── Invoice Actions ────────────────────────────────────────── */
+.invoice-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.invoice-actions .btn-pay {
+  width: auto;
+  padding: 12px 28px;
+}
+
+.invoice-actions .btn-blue {
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+/* ── Payment Header ─────────────────────────────────────────── */
+.payment-header {
+  text-align: center;
+  padding: 36px 16px 0;
+}
+
+.payment-header h1 {
+  font-size: 28px;
+  color: #1a3c5e;
+  margin-bottom: 6px;
+}
+
+.payment-header p {
+  color: #888;
+  font-size: 15px;
+}
+
+/* ── Card Form Section ──────────────────────────────────────── */
+.card-form-section {
+  display: flex;
+  flex-direction: column;
+}
