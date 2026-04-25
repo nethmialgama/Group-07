@@ -9,7 +9,7 @@ function AdminSidebar({ activePage, onNavigate }) {
       </div>
 
       <ul className="admin-menu">
-        {/* DASHBOARD LINK */}
+        {/* DASHBOARD */}
         <li
           className={activePage === "dashboard" ? "active" : ""}
           onClick={() => onNavigate("admin-dashboard")}
@@ -32,7 +32,7 @@ function AdminSidebar({ activePage, onNavigate }) {
           Dashboard
         </li>
 
-        {/* ROOMS LINK */}
+        {/* ROOMS */}
         <li
           className={activePage === "rooms" ? "active" : ""}
           onClick={() => onNavigate("admin-rooms")}
@@ -54,7 +54,7 @@ function AdminSidebar({ activePage, onNavigate }) {
           Room Management
         </li>
 
-        {/* USERS LINK */}
+        {/* USERS */}
         <li
           className={activePage === "users" ? "active" : ""}
           onClick={() => onNavigate("admin-users")}
@@ -77,6 +77,7 @@ function AdminSidebar({ activePage, onNavigate }) {
           User Management
         </li>
 
+        {/* PAYMENT GATEWAYS */}
         <li
           className={activePage === "payments" ? "active" : ""}
           onClick={() => onNavigate("admin-payments")}
@@ -95,6 +96,28 @@ function AdminSidebar({ activePage, onNavigate }) {
             <line x1="2" y1="10" x2="22" y2="10"></line>
           </svg>
           Payment Gateways
+        </li>
+
+        {/* REFUNDS */}
+        <li
+          className={activePage === "refunds" ? "active" : ""}
+          onClick={() => onNavigate("admin-refunds")}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+            <path d="M12 7v5l4 2"></path>
+          </svg>
+          Refund Management
         </li>
       </ul>
     </div>
