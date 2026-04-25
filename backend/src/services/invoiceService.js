@@ -96,7 +96,7 @@ function buildInvoicePDF(invoice) {
 
     // ── 3. Billed To / Booking Details ───────────────────────────────────────
     const colY = doc.y;
-    const col2 = M + W / 2 + 20;
+    const col2 = M + W / 2 + 10;
 
     doc
       .font("Helvetica-Bold")
@@ -326,4 +326,65 @@ async function sendInvoiceEmail(invoice) {
   });
 }
 
-module.exports = { buildInvoicePDF, sendInvoiceEmail };
+// ─── Send refund processed email ──────────────────────────────────────────────
+async function sendRefundEmail(refund) {
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
+      <div style="background:#1a3c5e;padding:28px 32px;">
+        <h1 style="color:white;margin:0;font-size:24px;">Smart Hotel</h1>
+        <p style="color:#a8c4d9;margin:4px 0 0;">Refund Confirmation</p>
+      </div>
+      <div style="padding:28px 32px;">
+        <p style="font-size:16px;color:#222;">Dear <strong>${refund.guestName}</strong>,</p>
+        <p style="color:#444;line-height:1.6;">
+          We have processed your refund for your cancelled booking.
+          The refund amount has been sent to your original payment method.
+        </p>
+
+        <div style="background:#e8f8ef;border:1px solid #82d4a0;border-radius:8px;padding:20px;margin:24px 0;">
+          <h3 style="margin:0 0 16px;color:#1a7a3c;font-size:15px;">✓ Refund Processed</h3>
+          <table style="width:100%;font-size:14px;color:#444;border-collapse:collapse;">
+            <tr><td style="padding:6px 0;color:#888;width:160px;">Reservation #</td>
+                <td><strong>${refund.reservationId}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Room</td>
+                <td>${refund.roomType}</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Check-in</td>
+                <td>${refund.checkIn}</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Check-out</td>
+                <td>${refund.checkOut}</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Amount Paid</td>
+                <td>LKR ${Number(refund.paidAmount).toLocaleString()}</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Refund Rate</td>
+                <td>${Math.round(Number(refund.refundRate) * 100)}%</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Refund Amount</td>
+                <td><strong style="color:#1a7a3c;font-size:18px;">LKR ${Number(refund.refundAmount).toLocaleString()}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Processed On</td>
+                <td>${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}</td></tr>
+          </table>
+        </div>
+
+        <p style="color:#444;line-height:1.6;">
+          Please allow <strong>3–5 business days</strong> for the refund to appear
+          in your account depending on your bank.
+        </p>
+        <p style="color:#444;line-height:1.6;">
+          If you have any questions please contact us at
+          <strong>smarthotel@gmail.com</strong> or call <strong>+94 112 345 678</strong>.
+        </p>
+        <hr style="border:none;border-top:1px solid #eee;margin:28px 0;" />
+        <p style="color:#aaa;font-size:12px;margin:0;">
+          Smart Hotel · 123 Hotel Road, Colombo, Sri Lanka
+        </p>
+      </div>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Smart Hotel" <${process.env.EMAIL_USER}>`,
+    to: refund.guestEmail,
+    subject: `Your Refund of LKR ${Number(refund.refundAmount).toLocaleString()} Has Been Processed — Smart Hotel`,
+    html,
+  });
+}
+
+module.exports = { buildInvoicePDF, sendInvoiceEmail, sendRefundEmail };

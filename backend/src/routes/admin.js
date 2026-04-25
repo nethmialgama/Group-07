@@ -399,11 +399,34 @@ router.put("/refunds/:id", async (req, res) => {
 
   try {
     await pool.query(
-      `UPDATE Refund
-       SET status = ?, processedAt = NOW()
-       WHERE refundId = ?`,
+      `UPDATE Refund SET status = ?, processedAt = NOW() WHERE refundId = ?`,
       [status, req.params.id],
     );
+
+    // Send email only when marking as Processed
+    if (status === "Processed") {
+      const [rows] = await pool.query(
+        `SELECT
+           rf.refundId, rf.reservationId, rf.paidAmount,
+           rf.refundAmount, rf.refundRate,
+           g.name  AS guestName,
+           g.email AS guestEmail,
+           rm.roomType,
+           r.checkIn, r.checkOut
+         FROM Refund rf
+         JOIN Guest       g  ON g.guestId       = rf.guestId
+         JOIN Reservation r  ON r.reservationId = rf.reservationId
+         JOIN Room        rm ON rm.roomId        = r.roomId
+         WHERE rf.refundId = ?`,
+        [req.params.id],
+      );
+
+      if (rows.length) {
+        const { sendRefundEmail } = require("../services/invoiceService");
+        await sendRefundEmail(rows[0]);
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error(err);

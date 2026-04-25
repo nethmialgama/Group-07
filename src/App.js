@@ -29,6 +29,7 @@ import AdminRooms from "./AdminRooms";
 import AdminUsers from "./AdminUsers";
 import AdminUserView from "./AdminUserView";
 import AdminPaymentSettings from "./AdminPaymentSettings";
+import AdminRefunds from "./AdminRefunds";
 import { clearStoredAuth, getStoredAuth } from "./auth";
 
 function App() {
@@ -118,6 +119,7 @@ function App() {
       "admin-users",
       "admin-user-view",
       "admin-payments",
+      "admin-refunds",
     ];
 
     // Require authentication before entering booking flow.
@@ -257,6 +259,18 @@ function App() {
         onNavigate={handleNavigation}
         onLogout={handleUserLogout}
       />
+    );
+  }
+  if (currentPage === "admin-refunds") {
+    if (role !== "Admin")
+      return (
+        <AdminLogin
+          onNavigate={handleNavigation}
+          onAdminLogin={handleUserLogin}
+        />
+      );
+    return (
+      <AdminRefunds onNavigate={handleNavigation} onLogout={handleUserLogout} />
     );
   }
 
