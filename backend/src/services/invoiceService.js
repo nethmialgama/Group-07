@@ -1,4 +1,6 @@
 // backend/src/services/invoiceService.js
+const fs = require("fs");
+const path = require("path");
 const PDFDocument = require("pdfkit");
 const nodemailer = require("nodemailer");
 
@@ -11,251 +13,279 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ─── Helper: draw a horizontal rule ──────────────────────────────────────────
-function drawLine(doc, margin) {
-  doc
-    .moveTo(margin, doc.y)
-    .lineTo(doc.page.width - margin, doc.y)
-    .strokeColor("#dde4ed")
-    .lineWidth(1)
-    .stroke();
-  doc.moveDown(0.6);
+const HOTEL_LOGO_PATH = path.resolve(
+  __dirname,
+  "../../../public/images/logo.png",
+);
+
+function formatDate(value) {
+  if (!value) return "-";
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 }
 
-// ─── Helper: draw a filled rectangle row ─────────────────────────────────────
-function filledRow(doc, y, color, height, margin) {
-  doc.rect(margin, y, doc.page.width - margin * 2, height).fill(color);
+function formatMoney(value) {
+  return `LKR ${Number(value || 0).toLocaleString()}`;
+}
+
+function drawRule(doc, x, y, width) {
+  doc
+    .save()
+    .moveTo(x, y)
+    .lineTo(x + width, y)
+    .strokeColor("#d9e0ea")
+    .lineWidth(1)
+    .stroke()
+    .restore();
+}
+
+function drawInfoCard(doc, { x, y, width, title, lines }) {
+  const bodyWidth = width - 22;
+  let currentY = y + 36;
+
+  doc.save();
+  doc.roundedRect(x, y, width, 40, 8).fill("#1a3c5e");
+  doc
+    .fillColor("#ffffff")
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .text(title, x + 12, y + 14, { width: bodyWidth });
+
+  doc.roundedRect(x, y + 30, width, 88, 8).fillAndStroke("#f7f9fc", "#e1e8f2");
+
+  doc.fillColor("#1f2937").font("Times-Roman").fontSize(11);
+  lines.forEach((line) => {
+    const text = line || "-";
+    const blockHeight = doc.heightOfString(text, { width: bodyWidth });
+    doc.text(text, x + 12, currentY, { width: bodyWidth });
+    currentY += blockHeight + 6;
+  });
+  doc.restore();
+
+  return Math.max(y + 118, currentY + 8);
+}
+
+function drawTableRow(
+  doc,
+  { x, y, width, label, value, fill, labelColor, valueColor, bold },
+) {
+  const rowHeight = 30;
+  const labelWidth = width * 0.68;
+  const valueWidth = width * 0.32;
+
+  doc.save();
+  doc
+    .rect(x, y, width, rowHeight)
+    .fill(fill)
+    .strokeColor("#e2e8f0")
+    .lineWidth(0.5)
+    .stroke();
+  doc
+    .font(bold ? "Helvetica-Bold" : "Times-Roman")
+    .fontSize(11)
+    .fillColor(labelColor)
+    .text(label, x + 10, y + 10, { width: labelWidth - 16 });
+  doc
+    .font(bold ? "Helvetica-Bold" : "Times-Roman")
+    .fontSize(11)
+    .fillColor(valueColor)
+    .text(value, x + labelWidth, y + 10, {
+      width: valueWidth - 10,
+      align: "right",
+    });
+  doc.restore();
+
+  return y + rowHeight;
 }
 
 // ─── Build PDF buffer ─────────────────────────────────────────────────────────
 function buildInvoicePDF(invoice) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true });
+    const doc = new PDFDocument({ margin: 48, size: "A4", bufferPages: true });
     const chunks = [];
-    const M = 50; // left/right margin
-    const W = doc.page.width - M * 2; // usable width
+    const M = 48;
+    const W = doc.page.width - M * 2;
 
     doc.on("data", (c) => chunks.push(c));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    // ── 1. Header banner ──────────────────────────────────────────────────────
-    doc.rect(0, 0, doc.page.width, 90).fill("#1a3c5e");
+    // Header panel
+    doc.rect(0, 0, doc.page.width, 124).fill("#1a3c5e");
 
-    doc
-      .fillColor("white")
-      .font("Helvetica-Bold")
-      .fontSize(26)
-      .text("Smart Hotel", M, 18, { continued: false });
-
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .text("123 Hotel Road, Colombo, Sri Lanka", M, 50)
-      .text("smarthotel@gmail.com  ·  +94 112 345 678", M, 64);
-
-    // "INVOICE" label on the right side of the banner
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(22)
-      .fillColor("white")
-      .text("INVOICE", M, 30, { width: W, align: "right" });
-
-    // Move cursor below the banner
-    doc.y = 110;
-    doc.fillColor("#333");
-
-    // ── 2. Invoice meta row ───────────────────────────────────────────────────
-    const metaY = doc.y;
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(9)
-      .fillColor("#888")
-      .text("INVOICE NUMBER", M, metaY)
-      .text("DATE ISSUED", M + 160, metaY)
-      .text("STATUS", M + 320, metaY);
-
-    doc
-      .font("Helvetica")
-      .fontSize(11)
-      .fillColor("#222")
-      .text(`#${invoice.paymentId}`, M, metaY + 14)
-      .text(
-        new Date().toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        }),
-        M + 160,
-        metaY + 14,
-      )
-      .text("✓ PAID", M + 320, metaY + 14);
-
-    doc.y = metaY + 38;
-    drawLine(doc, M);
-
-    // ── 3. Billed To / Booking Details ───────────────────────────────────────
-    const colY = doc.y;
-    const col2 = M + W / 2 + 10;
-
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(9)
-      .fillColor("#888")
-      .text("BILLED TO", M, colY)
-      .text("BOOKING DETAILS", col2, colY);
-
-    // Left column lines
-    const leftLines = [
-      invoice.billing.fullName || "-",
-      invoice.billing.email || "-",
-      invoice.billing.phone || "-",
-      invoice.billing.address || "-",
-    ];
-
-    // Right column lines
-    const cardInfo = invoice.cardBrand
-      ? `${invoice.cardBrand}  ····${invoice.cardLast4}`
-      : "Card";
-    const rightLines = [
-      `Room:       ${invoice.title || "-"}`,
-      `Check-in:   ${invoice.checkIn || "-"}`,
-      `Check-out:  ${invoice.checkOut || "-"}`,
-      invoice.guests ? `Guests:     ${invoice.guests}` : null,
-      `Payment:    ${cardInfo}`,
-    ].filter(Boolean);
-
-    const lineH = 16;
-    const startY = colY + 16;
-
-    doc.font("Helvetica").fontSize(11).fillColor("#333");
-    leftLines.forEach((line, i) => {
-      doc.text(line, M, startY + i * lineH, {
-        width: W / 2 - 10,
-        lineBreak: false,
-      });
-    });
-    rightLines.forEach((line, i) => {
-      doc.text(line, col2, startY + i * lineH, {
-        width: W / 2 - 10,
-        lineBreak: false,
-      });
-    });
-
-    // Move cursor past whichever column is taller
-    const tallest = Math.max(leftLines.length, rightLines.length);
-    doc.y = startY + tallest * lineH + 16;
-
-    drawLine(doc, M);
-
-    // ── 4. Line items table ───────────────────────────────────────────────────
-    const tableTop = doc.y;
-    const col2X = M + W * 0.72;
-    const rowHeight = 26;
-
-    // Table header
-    filledRow(doc, tableTop, "#1a3c5e", rowHeight, M);
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(10)
-      .fillColor("white")
-      .text("Description", M + 8, tableTop + 8, {
-        width: W * 0.68,
-        lineBreak: false,
-      })
-      .text("Amount (LKR)", col2X, tableTop + 8, {
-        width: W * 0.28,
-        align: "right",
-        lineBreak: false,
-      });
-
-    // Row 1 — paid amount
-    const row1Y = tableTop + rowHeight;
-    filledRow(doc, row1Y, "#f5f8fc", rowHeight, M);
-    doc
-      .font("Helvetica")
-      .fontSize(10)
-      .fillColor("#333")
-      .text(
-        `${invoice.title || "Hotel Room"}  —  ${invoice.checkIn} to ${invoice.checkOut}`,
-        M + 8,
-        row1Y + 8,
-        { width: W * 0.68, lineBreak: false },
-      )
-      .text(
-        `LKR ${Number(invoice.paidAmount).toLocaleString()}`,
-        col2X,
-        row1Y + 8,
-        { width: W * 0.28, align: "right", lineBreak: false },
-      );
-
-    let nextRowY = row1Y + rowHeight;
-
-    // Row 2 — remaining balance (only if > 0)
-    if (Number(invoice.remaining) > 0) {
-      filledRow(doc, nextRowY, "#ffffff", rowHeight, M);
-      // Draw a border for empty row
-      doc
-        .rect(M, nextRowY, W, rowHeight)
-        .strokeColor("#e8eef4")
-        .lineWidth(0.5)
-        .stroke();
-      doc
-        .font("Helvetica")
-        .fontSize(10)
-        .fillColor("#e07b00")
-        .text("Remaining balance (payable at hotel)", M + 8, nextRowY + 8, {
-          width: W * 0.68,
-          lineBreak: false,
-        })
-        .text(
-          `LKR ${Number(invoice.remaining).toLocaleString()}`,
-          col2X,
-          nextRowY + 8,
-          { width: W * 0.28, align: "right", lineBreak: false },
-        );
-      nextRowY += rowHeight;
+    if (fs.existsSync(HOTEL_LOGO_PATH)) {
+      doc.image(HOTEL_LOGO_PATH, M, 26, { fit: [72, 72], align: "left" });
     }
 
-    // Total row
-    filledRow(doc, nextRowY, "#1a3c5e", rowHeight + 4, M);
     doc
+      .fillColor("#ffffff")
+      .font("Helvetica-Bold")
+      .fontSize(25)
+      .text("Smart Hotel", M + 86, 34)
+      .font("Times-Roman")
+      .fontSize(10)
+      .text("123 Hotel Road, Colombo, Sri Lanka", M + 86, 64)
+      .text("smarthotel@gmail.com | +94 112 345 678", M + 86, 78)
+      .font("Helvetica-Bold")
+      .fontSize(20)
+      .text("INVOICE", M, 44, { width: W, align: "right" })
+      .font("Times-Roman")
+      .fontSize(10)
+      .text(`#${invoice.paymentId}`, M, 68, { width: W, align: "right" });
+
+    let y = 144;
+
+    // Meta strip
+    doc.roundedRect(M, y, W, 56, 8).fillAndStroke("#eef3f9", "#d9e3ef");
+    doc
+      .fillColor("#5b6b7f")
+      .font("Helvetica-Bold")
+      .fontSize(9)
+      .text("DATE ISSUED", M + 14, y + 11)
+      .text("STATUS", M + W / 2 - 38, y + 11)
+      .text("AMOUNT PAID", M + W - 180, y + 11, { width: 166, align: "right" });
+    doc
+      .fillColor("#111827")
+      .font("Times-Roman")
+      .fontSize(12)
+      .text(formatDate(new Date()), M + 14, y + 26)
+      .text("PAID", M + W / 2 - 38, y + 26)
+      .font("Helvetica-Bold")
+      .text(formatMoney(invoice.paidAmount), M + W - 180, y + 26, {
+        width: 166,
+        align: "right",
+      });
+
+    y += 74;
+
+    // Two info cards
+    const colGap = 14;
+    const colWidth = (W - colGap) / 2;
+    const paymentMethod = invoice.cardBrand
+      ? `${invoice.cardBrand} ending ${invoice.cardLast4 || ""}`
+      : "Card";
+
+    const billingLines = [
+      invoice.billing?.fullName || "-",
+      invoice.billing?.email || "-",
+      invoice.billing?.phone,
+      invoice.billing?.address,
+    ].filter((value, index) => {
+      const text = String(value || "").trim();
+      if (!text || text === "-") return false;
+      // Hide placeholder contact values that are not useful on invoices.
+      if (index === 2 && (text === "0000000000" || text === "N/A")) {
+        return false;
+      }
+      return true;
+    });
+
+    const leftBottom = drawInfoCard(doc, {
+      x: M,
+      y,
+      width: colWidth,
+      title: "Billed To",
+      lines: billingLines,
+    });
+
+    const rightBottom = drawInfoCard(doc, {
+      x: M + colWidth + colGap,
+      y,
+      width: colWidth,
+      title: "Booking Details",
+      lines: [
+        `Room: ${invoice.title || "-"}`,
+        `Check-in: ${formatDate(invoice.checkIn)}`,
+        `Check-out: ${formatDate(invoice.checkOut)}`,
+        invoice.guests ? `Guests: ${invoice.guests}` : null,
+        `Payment: ${paymentMethod}`,
+      ].filter(Boolean),
+    });
+
+    y = Math.max(leftBottom, rightBottom) + 14;
+    drawRule(doc, M, y, W);
+    y += 14;
+
+    // Charges table
+    doc
+      .fillColor("#1a3c5e")
       .font("Helvetica-Bold")
       .fontSize(12)
-      .fillColor("white")
-      .text("AMOUNT PAID TODAY", M + 8, nextRowY + 9, {
-        width: W * 0.68,
-        lineBreak: false,
-      })
-      .text(
-        `LKR ${Number(invoice.paidAmount).toLocaleString()}`,
-        col2X,
-        nextRowY + 9,
-        { width: W * 0.28, align: "right", lineBreak: false },
-      );
+      .text("Payment Breakdown", M, y);
+    y += 18;
 
-    doc.y = nextRowY + rowHeight + 4 + 24;
+    y = drawTableRow(doc, {
+      x: M,
+      y,
+      width: W,
+      label: "Description",
+      value: "Amount",
+      fill: "#1a3c5e",
+      labelColor: "#ffffff",
+      valueColor: "#ffffff",
+      bold: true,
+    });
 
-    drawLine(doc, M);
+    y = drawTableRow(doc, {
+      x: M,
+      y,
+      width: W,
+      label: `${invoice.title || "Hotel Room"} (${formatDate(invoice.checkIn)} to ${formatDate(invoice.checkOut)})`,
+      value: formatMoney(invoice.paidAmount),
+      fill: "#f7f9fc",
+      labelColor: "#111827",
+      valueColor: "#111827",
+      bold: false,
+    });
 
-    // ── 5. Footer ─────────────────────────────────────────────────────────────
+    if (Number(invoice.remaining) > 0) {
+      y = drawTableRow(doc, {
+        x: M,
+        y,
+        width: W,
+        label: "Remaining balance (payable at hotel)",
+        value: formatMoney(invoice.remaining),
+        fill: "#fffaf0",
+        labelColor: "#b45309",
+        valueColor: "#b45309",
+        bold: false,
+      });
+    }
+
+    y = drawTableRow(doc, {
+      x: M,
+      y,
+      width: W,
+      label: "Amount paid today",
+      value: formatMoney(invoice.paidAmount),
+      fill: "#1a3c5e",
+      labelColor: "#ffffff",
+      valueColor: "#ffffff",
+      bold: true,
+    });
+
+    y += 24;
+    drawRule(doc, M, y, W);
+    y += 16;
+
     doc
-      .font("Helvetica")
+      .fillColor("#4b5563")
+      .font("Times-Roman")
       .fontSize(10)
-      .fillColor("#888")
       .text(
-        "Thank you for choosing Smart Hotel. We look forward to welcoming you!",
+        "Thank you for choosing Smart Hotel. We look forward to welcoming you.",
         M,
-        doc.y,
+        y,
         { width: W, align: "center" },
-      );
-    doc.moveDown(0.4);
-    doc.text(
-      "For enquiries: smarthotel@gmail.com  ·  +94 112 345 678",
-      M,
-      doc.y,
-      { width: W, align: "center" },
-    );
+      )
+      .moveDown(0.4)
+      .text("For enquiries: smarthotel@gmail.com | +94 112 345 678", {
+        width: W,
+        align: "center",
+      });
 
     doc.end();
   });

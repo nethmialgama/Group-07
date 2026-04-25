@@ -36,9 +36,12 @@ import ResetPassword from "./ResetPassword";
 
 function App() {
   // 1. Initialize State
-  const [currentPage, setCurrentPage] = useState(
-    window.location.hash.replace("#", "") || "home",
-  );
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (window.location.pathname.includes("reset-password")) {
+      return "reset-password";
+    }
+    return window.location.hash.replace("#", "") || "home";
+  });
 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
