@@ -228,6 +228,21 @@ CREATE TABLE AuditLog (
     INDEX idx_audit_staff (staffId)
 );
 
+CREATE TABLE IF NOT EXISTS Refund (
+  refundId      INT AUTO_INCREMENT PRIMARY KEY,
+  reservationId INT NOT NULL,
+  guestId       INT NOT NULL,
+  paidAmount    DECIMAL(10,2) NOT NULL,
+  refundAmount  DECIMAL(10,2) NOT NULL,
+  refundRate    DECIMAL(5,2)  NOT NULL,
+  reason        VARCHAR(255)  DEFAULT NULL,
+  status        ENUM('Pending','Processed','Rejected') DEFAULT 'Pending',
+  requestedAt   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  processedAt   DATETIME DEFAULT NULL,
+  FOREIGN KEY (reservationId) REFERENCES Reservation(reservationId),
+  FOREIGN KEY (guestId)       REFERENCES Guest(guestId)
+);
+
 
 
 -- INSERT Sample Rooms
