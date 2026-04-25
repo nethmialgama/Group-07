@@ -7,7 +7,6 @@ let paymentGatewayTableEnsured = false;
 
 async function ensurePaymentGatewayTable() {
   if (paymentGatewayTableEnsured) return;
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS PaymentGatewaySettings (
       provider VARCHAR(50) PRIMARY KEY,
@@ -16,13 +15,12 @@ async function ensurePaymentGatewayTable() {
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
-
   paymentGatewayTableEnsured = true;
 }
 
 router.use(authenticate, requireAdmin);
 
-// GET /api/admin/stats
+// ─── GET /api/admin/stats ─────────────────────────────────────────────────────
 router.get("/stats", async (req, res) => {
   try {
     const [[rooms]] = await pool.query("SELECT COUNT(*) AS count FROM Room");
@@ -31,7 +29,19 @@ router.get("/stats", async (req, res) => {
     );
     const [[users]] = await pool.query("SELECT COUNT(*) AS count FROM Guest");
     const [[revenue]] = await pool.query(
-      "SELECT COALESCE(SUM(amount), 0) AS total FROM Payment WHERE status = 'Completed'",
+      "SELECT COALESCE(SUM(total_price), 0) AS total FROM Reservation WHERE status NOT IN ('Cancelled')",
+    );
+    const [[available]] = await pool.query(
+      "SELECT COUNT(*) AS count FROM Room WHERE status = 'Available'",
+    );
+    const [[occupied]] = await pool.query(
+      "SELECT COUNT(*) AS count FROM Room WHERE status = 'Occupied'",
+    );
+    const [[cancellations]] = await pool.query(
+      "SELECT COUNT(*) AS count FROM Reservation WHERE status = 'Cancelled'",
+    );
+    const [[avgRating]] = await pool.query(
+      "SELECT ROUND(AVG(rating), 1) AS avg FROM Review",
     );
 
     res.json({
@@ -39,6 +49,10 @@ router.get("/stats", async (req, res) => {
       bookings: bookings.count,
       users: users.count,
       revenue: Number(revenue.total || 0),
+      availableRooms: available.count,
+      occupiedRooms: occupied.count,
+      cancellations: cancellations.count,
+      avgRating: avgRating.avg || null,
     });
   } catch (err) {
     console.error(err);
@@ -46,11 +60,66 @@ router.get("/stats", async (req, res) => {
   }
 });
 
-// GET /api/admin/recent-bookings
+// ─── GET /api/admin/today-stats ───────────────────────────────────────────────
+router.get("/today-stats", async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    const [[checkIns]] = await pool.query(
+      "SELECT COUNT(*) AS count FROM Reservation WHERE checkIn = ? AND status NOT IN ('Cancelled')",
+      [today],
+    );
+    const [[checkOuts]] = await pool.query(
+      "SELECT COUNT(*) AS count FROM Reservation WHERE checkOut = ? AND status NOT IN ('Cancelled')",
+      [today],
+    );
+    const [[newBookings]] = await pool.query(
+      "SELECT COUNT(*) AS count FROM Reservation WHERE DATE(booking_date) = ?",
+      [today],
+    );
+    const [[todayRevenue]] = await pool.query(
+      "SELECT COALESCE(SUM(total_price), 0) AS total FROM Reservation WHERE DATE(booking_date) = ? AND status NOT IN ('Cancelled')",
+      [today],
+    );
+
+    res.json({
+      checkInsToday: checkIns.count,
+      checkOutsToday: checkOuts.count,
+      newBookingsToday: newBookings.count,
+      todayRevenue: Number(todayRevenue.total || 0),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// ─── GET /api/admin/booking-history ──────────────────────────────────────────
+router.get("/booking-history", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+         r.reservationId, r.checkIn, r.checkOut, r.status, r.total_price, r.booking_date,
+         g.name AS guest,
+         rm.roomType, rm.roomNumber
+       FROM Reservation r
+       JOIN Guest g  ON g.guestId  = r.guestId
+       JOIN Room  rm ON rm.roomId  = r.roomId
+       ORDER BY r.reservationId DESC
+       LIMIT 200`,
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// ─── GET /api/admin/recent-bookings (kept for backward compat) ────────────────
 router.get("/recent-bookings", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT r.reservationId, g.name AS guest, rm.roomType, r.checkIn, r.checkOut
+      `SELECT r.reservationId, g.name AS guest, rm.roomType, rm.roomNumber, r.checkIn, r.checkOut, r.status, r.total_price
        FROM Reservation r
        JOIN Guest g ON g.guestId = r.guestId
        JOIN Room rm ON rm.roomId = r.roomId
@@ -64,13 +133,54 @@ router.get("/recent-bookings", async (req, res) => {
   }
 });
 
-// GET /api/admin/users
+// ─── GET /api/admin/bookings-monthly ─────────────────────────────────────────
+router.get("/bookings-monthly", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+         DATE_FORMAT(booking_date, '%b %Y') AS month,
+         DATE_FORMAT(booking_date, '%Y-%m')  AS yearMonth,
+         COUNT(*) AS count
+       FROM Reservation
+       WHERE booking_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+       GROUP BY yearMonth, month
+       ORDER BY yearMonth ASC`,
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// ─── GET /api/admin/revenue-monthly ──────────────────────────────────────────
+router.get("/revenue-monthly", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+         DATE_FORMAT(booking_date, '%b %Y') AS month,
+         DATE_FORMAT(booking_date, '%Y-%m')  AS yearMonth,
+         COALESCE(SUM(total_price), 0) AS revenue
+       FROM Reservation
+       WHERE booking_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+         AND status NOT IN ('Cancelled')
+       GROUP BY yearMonth, month
+       ORDER BY yearMonth ASC`,
+    );
+    res.json(rows.map((r) => ({ ...r, revenue: Number(r.revenue) })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// ─── GET /api/admin/users ─────────────────────────────────────────────────────
 router.get("/users", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT g.guestId AS id, g.name, g.email, g.phone, 'User' AS role,
               CASE WHEN EXISTS(
-                SELECT 1 FROM Reservation r WHERE r.guestId = g.guestId AND r.status IN ('Confirmed','Pending')
+                SELECT 1 FROM Reservation r WHERE r.guestId = g.guestId AND r.status IN ('Confirmed','Pending','Checked-In')
               ) THEN 'Active' ELSE 'Inactive' END AS status
        FROM Guest g
        ORDER BY g.guestId DESC`,
@@ -82,11 +192,11 @@ router.get("/users", async (req, res) => {
   }
 });
 
-// GET /api/admin/users/:id/bookings
+// ─── GET /api/admin/users/:id/bookings ───────────────────────────────────────
 router.get("/users/:id/bookings", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT r.reservationId AS id, rm.roomType AS room, r.checkIn, r.checkOut, r.status
+      `SELECT r.reservationId AS id, rm.roomType AS room, rm.roomNumber, r.checkIn, r.checkOut, r.status, r.total_price
        FROM Reservation r
        JOIN Room rm ON rm.roomId = r.roomId
        WHERE r.guestId = ?
@@ -100,7 +210,7 @@ router.get("/users/:id/bookings", async (req, res) => {
   }
 });
 
-// DELETE /api/admin/users/:id
+// ─── DELETE /api/admin/users/:id ─────────────────────────────────────────────
 router.delete("/users/:id", async (req, res) => {
   try {
     await pool.query("DELETE FROM Guest WHERE guestId = ?", [req.params.id]);
@@ -111,10 +221,12 @@ router.delete("/users/:id", async (req, res) => {
   }
 });
 
-// GET /api/admin/rooms
+// ─── GET /api/admin/rooms ─────────────────────────────────────────────────────
 router.get("/rooms", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM Room ORDER BY roomId DESC");
+    const [rows] = await pool.query(
+      "SELECT * FROM Room ORDER BY roomNumber ASC",
+    );
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -122,7 +234,7 @@ router.get("/rooms", async (req, res) => {
   }
 });
 
-// POST /api/admin/rooms
+// ─── POST /api/admin/rooms ────────────────────────────────────────────────────
 router.post("/rooms", async (req, res) => {
   const {
     roomNumber,
@@ -133,13 +245,11 @@ router.post("/rooms", async (req, res) => {
     description,
     status,
   } = req.body;
-
   if (!roomNumber || !roomType || roomPrice == null) {
     return res
       .status(400)
       .json({ error: "roomNumber, roomType, roomPrice required" });
   }
-
   try {
     const [result] = await pool.query(
       `INSERT INTO Room (roomNumber, roomType, capacity, roomPrice, amenities, description, status)
@@ -161,7 +271,7 @@ router.post("/rooms", async (req, res) => {
   }
 });
 
-// PUT /api/admin/rooms/:id
+// ─── PUT /api/admin/rooms/:id ─────────────────────────────────────────────────
 router.put("/rooms/:id", async (req, res) => {
   const {
     roomNumber,
@@ -172,18 +282,15 @@ router.put("/rooms/:id", async (req, res) => {
     description,
     status,
   } = req.body;
-
   if (!roomNumber || !roomType || roomPrice == null) {
     return res
       .status(400)
       .json({ error: "roomNumber, roomType, roomPrice required" });
   }
-
   try {
     await pool.query(
-      `UPDATE Room
-       SET roomNumber = ?, roomType = ?, capacity = ?, roomPrice = ?, amenities = ?, description = ?, status = ?
-       WHERE roomId = ?`,
+      `UPDATE Room SET roomNumber=?, roomType=?, capacity=?, roomPrice=?, amenities=?, description=?, status=?
+       WHERE roomId=?`,
       [
         roomNumber,
         roomType,
@@ -202,7 +309,7 @@ router.put("/rooms/:id", async (req, res) => {
   }
 });
 
-// GET /api/admin/payment-gateways
+// ─── GET /api/admin/payment-gateways ─────────────────────────────────────────
 router.get("/payment-gateways", async (req, res) => {
   try {
     await ensurePaymentGatewayTable();
@@ -223,17 +330,13 @@ router.get("/payment-gateways", async (req, res) => {
   }
 });
 
-// PUT /api/admin/payment-gateways/:provider
+// ─── PUT /api/admin/payment-gateways/:provider ───────────────────────────────
 router.put("/payment-gateways/:provider", async (req, res) => {
   const provider = String(req.params.provider || "")
     .trim()
     .toLowerCase();
   const { isEnabled, config } = req.body;
-
-  if (!provider) {
-    return res.status(400).json({ error: "provider is required" });
-  }
-
+  if (!provider) return res.status(400).json({ error: "provider is required" });
   try {
     await ensurePaymentGatewayTable();
     await pool.query(
@@ -242,7 +345,65 @@ router.put("/payment-gateways/:provider", async (req, res) => {
        ON DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled), config_json = VALUES(config_json)`,
       [provider, !!isEnabled, JSON.stringify(config || {})],
     );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
+// GET /api/admin/refunds — list all refunds
+router.get("/refunds", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+         rf.refundId,
+         rf.reservationId,
+         rf.paidAmount,
+         rf.refundAmount,
+         rf.refundRate,
+         rf.reason,
+         rf.status,
+         rf.requestedAt,
+         rf.processedAt,
+         g.name  AS guestName,
+         g.email AS guestEmail,
+         g.phone AS guestPhone,
+         rm.roomType,
+         r.checkIn,
+         r.checkOut
+       FROM Refund rf
+       JOIN Guest       g  ON g.guestId       = rf.guestId
+       JOIN Reservation r  ON r.reservationId = rf.reservationId
+       JOIN Room        rm ON rm.roomId        = r.roomId
+       ORDER BY
+         CASE rf.status WHEN 'Pending' THEN 0 WHEN 'Processed' THEN 1 ELSE 2 END,
+         rf.requestedAt DESC`,
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// PUT /api/admin/refunds/:id — update refund status (Processed or Rejected)
+router.put("/refunds/:id", async (req, res) => {
+  const { status } = req.body;
+
+  if (!["Processed", "Rejected"].includes(status)) {
+    return res
+      .status(400)
+      .json({ error: "Status must be Processed or Rejected" });
+  }
+
+  try {
+    await pool.query(
+      `UPDATE Refund
+       SET status = ?, processedAt = NOW()
+       WHERE refundId = ?`,
+      [status, req.params.id],
+    );
     res.json({ success: true });
   } catch (err) {
     console.error(err);
