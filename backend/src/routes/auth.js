@@ -293,4 +293,145 @@ router.put("/profile", authenticate, async (req, res) => {
   }
 });
 
+// ── Forgot / Reset Password ──────────────────────────────────────────────────
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// POST /api/auth/forgot-password
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    // Check guest first, then staff
+    const [guests] = await pool.query("SELECT * FROM Guest WHERE email = ?", [
+      email,
+    ]);
+    const [staff] = await pool.query("SELECT * FROM Staff WHERE email = ?", [
+      email,
+    ]);
+
+    // Always return success — never reveal whether email exists (security best practice)
+    if (guests.length === 0 && staff.length === 0) {
+      return res.json({
+        success: true,
+        message: "If this email is registered, a reset link has been sent.",
+      });
+    }
+
+    // Generate secure token
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Invalidate any existing tokens for this email
+    await pool.query("DELETE FROM PasswordResetTokens WHERE email = ?", [
+      email,
+    ]);
+
+    // Store new token
+    await pool.query(
+      "INSERT INTO PasswordResetTokens (email, token, expiresAt) VALUES (?, ?, ?)",
+      [email, token, expiresAt],
+    );
+
+    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${token}`;
+
+    await transporter.sendMail({
+      from: `"Smart Hotel" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Password Reset Request – Smart Hotel",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <h2 style="color: #1a1a2e; border-bottom: 2px solid #c9a84c; padding-bottom: 10px;">Smart Hotel – Password Reset</h2>
+          <p>Hello,</p>
+          <p>We received a request to reset the password for your Smart Hotel account.</p>
+          <p>Click the button below to reset your password. This link is valid for <strong>1 hour</strong>.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}"
+               style="background-color: #c9a84c; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">
+              Reset My Password
+            </a>
+          </div>
+          <p>If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+          <p style="color: #888; font-size: 0.85rem;">For security, this link expires in 1 hour and can only be used once.</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+          <p style="color: #888; font-size: 0.8rem; text-align: center;">© 2025 Smart Hotel. All rights reserved.</p>
+        </div>
+      `,
+    });
+
+    return res.json({
+      success: true,
+      message: "If this email is registered, a reset link has been sent.",
+    });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res
+      .status(500)
+      .json({ error: "Failed to process request. Please try again." });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post("/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password)
+    return res
+      .status(400)
+      .json({ error: "Token and new password are required" });
+  if (password.length < 8)
+    return res
+      .status(400)
+      .json({ error: "Password must be at least 8 characters" });
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM PasswordResetTokens WHERE token = ? AND used = FALSE AND expiresAt > NOW()",
+      [token],
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "This reset link is invalid or has expired." });
+    }
+
+    const { email } = rows[0];
+    const passwordHash = hashPassword(password);
+
+    // Update whichever account holds this email
+    await pool.query("UPDATE Guest SET password_hash = ? WHERE email = ?", [
+      passwordHash,
+      email,
+    ]);
+    await pool.query("UPDATE Staff SET password_hash = ? WHERE email = ?", [
+      passwordHash,
+      email,
+    ]);
+
+    // Mark token as used
+    await pool.query(
+      "UPDATE PasswordResetTokens SET used = TRUE WHERE token = ?",
+      [token],
+    );
+
+    return res.json({
+      success: true,
+      message: "Password has been reset successfully.",
+    });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res
+      .status(500)
+      .json({ error: "Failed to reset password. Please try again." });
+  }
+});
+
 module.exports = router;
