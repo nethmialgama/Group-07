@@ -8,7 +8,7 @@ import {
 } from "./auth";
 
 // We added 'onSignupClick' to the properties here
-function Login({ onLogin, onBack, onSignupClick }) {
+function Login({ onLogin, onBack, onSignupClick, onForgotPassword }) {
   const rememberedIdentifier = getRememberedIdentifier("user");
   const [identifier, setIdentifier] = useState(rememberedIdentifier);
   const [password, setPassword] = useState("");
@@ -75,9 +75,13 @@ function Login({ onLogin, onBack, onSignupClick }) {
             <div className="form-group">
               <div className="password-label-row">
                 <label>Password</label>
-                <a href="#" className="forgot-password">
+                <span
+                  className="forgot-password"
+                  onClick={() => onForgotPassword()}
+                  style={{ cursor: "pointer" }}
+                >
                   Forgot password?
-                </a>
+                </span>
               </div>
               <input
                 type="password"

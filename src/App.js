@@ -31,6 +31,8 @@ import AdminUserView from "./AdminUserView";
 import AdminPaymentSettings from "./AdminPaymentSettings";
 import AdminRefunds from "./AdminRefunds";
 import { clearStoredAuth, getStoredAuth } from "./auth";
+import ForgotPassword from "./ForgotPassword";
+import ResetPassword from "./ResetPassword";
 
 function App() {
   // 1. Initialize State
@@ -282,6 +284,7 @@ function App() {
         onLogin={handleUserLogin}
         onBack={() => handleNavigation("home")}
         onSignupClick={() => handleNavigation("signup")}
+        onForgotPassword={() => handleNavigation("forgot-password")}
       />
     );
   }
@@ -292,6 +295,12 @@ function App() {
         onBack={() => handleNavigation("home")}
       />
     );
+  }
+  if (currentPage === "forgot-password") {
+    return <ForgotPassword onBack={() => handleNavigation("login")} />;
+  }
+  if (currentPage === "reset-password") {
+    return <ResetPassword onBackToLogin={() => handleNavigation("login")} />;
   }
 
   // --- MAIN HOTEL PAGES ---
@@ -360,6 +369,7 @@ function App() {
           onLogin={handleUserLogin}
           onBack={() => handleNavigation("home")}
           onSignupClick={() => handleNavigation("signup")}
+          onForgotPassword={() => handleNavigation("forgot-password")}
         />
       );
     return <PaymentGateway onNavigate={handleNavigation} room={selectedRoom} />;
@@ -372,6 +382,7 @@ function App() {
           onLogin={handleUserLogin}
           onBack={() => handleNavigation("home")}
           onSignupClick={() => handleNavigation("signup")}
+          onForgotPassword={() => handleNavigation("forgot-password")}
         />
       );
     return (
