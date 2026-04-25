@@ -1,18 +1,25 @@
 // src/Payment.js
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { showToast } from "./toast";
-import { getStoredAuth } from "./auth";
+import { getStoredAuth, getAuthHeaders } from "./auth";
 
 function Payment({ onNavigate, room }) {
   const storedAuth = getStoredAuth();
 
-  // ── ALL HOOKS FIRST — before any early return ──────────────────────────────
+  // ── ALL HOOKS FIRST ────────────────────────────────────────────────────────
   const [fullName, setFullName] = useState(storedAuth.name || "");
   const [email, setEmail] = useState(storedAuth.email || "");
   const [phone, setPhone] = useState(storedAuth.phone || "");
   const [address, setAddress] = useState("");
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Payment amount state
+  const [quote, setQuote] = useState(null); // from backend
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [payAmount, setPayAmount] = useState(0); // what user chose to pay
+
+  const hasFetchedQuote = useRef(false);
 
   // ── Early return AFTER hooks ───────────────────────────────────────────────
   const selectedRoom = room || null;
@@ -31,16 +38,69 @@ function Payment({ onNavigate, room }) {
     );
   }
 
-  // Clean the raw price — strip "LKR", commas, spaces so we always get a number
-  const rawAmount = Number(
-    String(
-      selectedRoom.totalPrice ||
-        selectedRoom.rawPrice ||
-        selectedRoom.price ||
-        "0",
-    ).replace(/[^0-9.]/g, ""),
-  );
-  const displayPrice = rawAmount.toLocaleString();
+  // ── Fetch payment quote from backend ──────────────────────────────────────
+  useEffect(() => {
+    if (hasFetchedQuote.current) return;
+    hasFetchedQuote.current = true;
+
+    const fetchQuote = async () => {
+      setQuoteLoading(true);
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/payments/policy/${selectedRoom.reservationId}`,
+          { headers: getAuthHeaders() },
+        );
+        const data = await res.json();
+        if (!res.ok)
+          throw new Error(data.error || "Failed to load payment info");
+
+        setQuote(data);
+        // Default slider to the minimum required amount
+        setPayAmount(data.advancePayment.requiredAmount);
+      } catch (err) {
+        console.error(err);
+        showToast("Could not load payment details. Please try again.", "error");
+        // Fallback: use raw price from room prop
+        const fallback = Number(
+          String(
+            selectedRoom.totalPrice ||
+              selectedRoom.rawPrice ||
+              selectedRoom.price ||
+              "0",
+          ).replace(/[^0-9.]/g, ""),
+        );
+        setPayAmount(fallback);
+      } finally {
+        setQuoteLoading(false);
+      }
+    };
+
+    fetchQuote();
+  }, []);
+
+  // ── Derived values ─────────────────────────────────────────────────────────
+  const totalPrice =
+    quote?.totalPrice ||
+    Number(
+      String(selectedRoom.totalPrice || selectedRoom.price || "0").replace(
+        /[^0-9.]/g,
+        "",
+      ),
+    );
+  const minAmount = quote?.advancePayment?.requiredAmount || totalPrice;
+  const partialAllowed = quote ? minAmount < totalPrice : false;
+  const daysLeft = quote?.advancePayment?.daysBeforeCheckIn;
+  const requiredRate = quote
+    ? Math.round(
+        (quote.advancePayment.requiredRate || quote.advancePayment.rate || 1) *
+          100,
+      )
+    : 100;
+
+  // ── Slider change ──────────────────────────────────────────────────────────
+  const handleSliderChange = (e) => {
+    setPayAmount(Number(e.target.value));
+  };
 
   // ── Validation ─────────────────────────────────────────────────────────────
   const validate = () => {
@@ -66,7 +126,8 @@ function Payment({ onNavigate, room }) {
     onNavigate("payment-gateway", {
       ...selectedRoom,
       billing: { fullName, email, phone, address },
-      amount: rawAmount,
+      amount: payAmount,
+      totalPrice,
     });
   };
 
@@ -163,11 +224,11 @@ function Payment({ onNavigate, room }) {
           </div>
         </div>
 
-        {/* ── RIGHT: Booking Summary ── */}
+        {/* ── RIGHT: Booking Summary + Payment Amount ── */}
         <div className="payment-details-section">
+          {/* Booking Summary */}
           <div className="summary-card">
             <h3>Booking Summary</h3>
-
             <div className="summary-row">
               <span>Room</span>
               <strong>{selectedRoom.title || "Hotel Room"}</strong>
@@ -188,15 +249,120 @@ function Payment({ onNavigate, room }) {
             )}
             <div className="summary-divider" />
             <div className="summary-row total">
-              <span>Total Amount</span>
-              <strong>LKR {displayPrice}</strong>
+              <span>Total Booking Fee</span>
+              <strong>LKR {totalPrice.toLocaleString()}</strong>
             </div>
-
-            <p className="summary-note">
-              💡 A minimum advance payment is required based on your check-in
-              date. The remaining balance can be settled at the hotel.
-            </p>
           </div>
+
+          {/* Payment Amount Section */}
+          {quoteLoading ? (
+            <div className="quote-loading">
+              ⏳ Calculating payment requirements...
+            </div>
+          ) : (
+            <div className="payment-amount-card">
+              <h3>Payment Amount</h3>
+
+              {/* Days info badge */}
+              {daysLeft !== null && daysLeft !== undefined && (
+                <div
+                  className={`days-badge ${daysLeft > 30 ? "green" : daysLeft >= 20 ? "orange" : "red"}`}
+                >
+                  {daysLeft > 0
+                    ? `${daysLeft} days before check-in`
+                    : daysLeft === 0
+                      ? "Check-in is today"
+                      : "Check-in has passed"}
+                </div>
+              )}
+
+              {partialAllowed ? (
+                <>
+                  {/* Policy note */}
+                  <p className="payment-policy-note">
+                    Based on your booking date, you must pay at least{" "}
+                    <strong>{requiredRate}%</strong> (LKR{" "}
+                    {minAmount.toLocaleString()}) now. You can pay more or the
+                    full amount if you prefer. The remaining balance can be
+                    settled at the hotel.
+                  </p>
+
+                  {/* Amount display */}
+                  <div className="pay-amount-display">
+                    <span className="pay-amount-value">
+                      LKR {payAmount.toLocaleString()}
+                    </span>
+                    {payAmount < totalPrice && (
+                      <span className="pay-amount-remaining">
+                        + LKR {(totalPrice - payAmount).toLocaleString()} at
+                        hotel
+                      </span>
+                    )}
+                    {payAmount >= totalPrice && (
+                      <span className="pay-amount-full">✓ Full payment</span>
+                    )}
+                  </div>
+
+                  {/* Slider */}
+                  <div className="slider-container">
+                    <input
+                      type="range"
+                      min={minAmount}
+                      max={totalPrice}
+                      step={100}
+                      value={payAmount}
+                      onChange={handleSliderChange}
+                      className="payment-slider"
+                    />
+                    <div className="slider-labels">
+                      <span>Min: LKR {minAmount.toLocaleString()}</span>
+                      <span>Full: LKR {totalPrice.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Quick select buttons */}
+                  <div className="quick-pay-buttons">
+                    <button
+                      className={`quick-pay-btn ${payAmount === minAmount ? "active" : ""}`}
+                      onClick={() => setPayAmount(minAmount)}
+                    >
+                      Min ({requiredRate}%)
+                    </button>
+                    {requiredRate < 75 && (
+                      <button
+                        className={`quick-pay-btn ${payAmount === Math.round(totalPrice * 0.75) ? "active" : ""}`}
+                        onClick={() =>
+                          setPayAmount(Math.round(totalPrice * 0.75))
+                        }
+                      >
+                        75%
+                      </button>
+                    )}
+                    <button
+                      className={`quick-pay-btn ${payAmount === totalPrice ? "active" : ""}`}
+                      onClick={() => setPayAmount(totalPrice)}
+                    >
+                      Full (100%)
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* Full payment required — no slider */
+                <>
+                  <p className="payment-policy-note">
+                    Your check-in is less than 20 days away. Full payment is
+                    required at this time.
+                  </p>
+                  <div className="pay-amount-display">
+                    <span className="pay-amount-value">
+                      LKR {totalPrice.toLocaleString()}
+                    </span>
+                    <span className="pay-amount-full">✓ Full payment</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Policy agreement */}
           <div
@@ -217,7 +383,7 @@ function Payment({ onNavigate, room }) {
                   className="policy-link"
                   onClick={() =>
                     showToast(
-                      "Cancellation policy: Full refund 7+ days before check-in, 50% within 3–7 days, no refund under 3 days.",
+                      "Advance payment: 20% if 30+ days, 50% if 20-30 days, 100% if under 20 days. Refund: 80% if 30+ days, 70% if 20-30 days, 60% if 7-20 days, 40% if 3-7 days, no refund under 3 days.",
                       "info",
                     )
                   }
@@ -236,7 +402,7 @@ function Payment({ onNavigate, room }) {
             <button
               className="btn-pay"
               onClick={handleProceed}
-              disabled={!agreedToPolicy}
+              disabled={!agreedToPolicy || quoteLoading}
               style={{
                 opacity: agreedToPolicy ? 1 : 0.5,
                 cursor: agreedToPolicy ? "pointer" : "not-allowed",
