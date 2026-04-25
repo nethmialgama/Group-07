@@ -56,7 +56,7 @@ function drawInfoCard(doc, { x, y, width, title, lines }) {
 
   doc.roundedRect(x, y + 30, width, 88, 8).fillAndStroke("#f7f9fc", "#e1e8f2");
 
-  doc.fillColor("#1f2937").font("Times-Roman").fontSize(11);
+  doc.fillColor("#620076").font("Times-Roman").fontSize(11);
   lines.forEach((line) => {
     const text = line || "-";
     const blockHeight = doc.heightOfString(text, { width: bodyWidth });
@@ -141,14 +141,14 @@ function buildInvoicePDF(invoice) {
     // Meta strip
     doc.roundedRect(M, y, W, 56, 8).fillAndStroke("#eef3f9", "#d9e3ef");
     doc
-      .fillColor("#5b6b7f")
+      .fillColor("#725b7f")
       .font("Helvetica-Bold")
       .fontSize(9)
       .text("DATE ISSUED", M + 14, y + 11)
       .text("STATUS", M + W / 2 - 38, y + 11)
       .text("AMOUNT PAID", M + W - 180, y + 11, { width: 166, align: "right" });
     doc
-      .fillColor("#111827")
+      .fillColor("#54088a")
       .font("Times-Roman")
       .fontSize(12)
       .text(formatDate(new Date()), M + 14, y + 26)
