@@ -1,7 +1,9 @@
+// backend/src/routes/reservations.js
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticate } = require("../middleware/auth");
+const { getRefundQuote } = require("../services/paymentPolicy");
 
 // POST /api/reservations - create a reservation
 router.post("/", authenticate, async (req, res) => {
@@ -20,7 +22,6 @@ router.post("/", authenticate, async (req, res) => {
   }
 
   try {
-    // Get room price
     const [roomRows] = await pool.query(
       "SELECT roomPrice, status FROM Room WHERE roomId = ?",
       [roomId],
@@ -32,8 +33,8 @@ router.post("/", authenticate, async (req, res) => {
         .status(400)
         .json({ error: "Room is not available for booking" });
     }
-    const roomPrice = parseFloat(roomRows[0].roomPrice || 0);
 
+    const roomPrice = parseFloat(roomRows[0].roomPrice || 0);
     const inDate = new Date(checkIn);
     const outDate = new Date(checkOut);
     const msPerDay = 24 * 60 * 60 * 1000;
@@ -46,7 +47,6 @@ router.post("/", authenticate, async (req, res) => {
       [checkIn, checkOut, totalPrice, guestId, roomId, staffId || null],
     );
 
-    // Update room status to Occupied
     await pool.query("UPDATE Room SET status = ? WHERE roomId = ?", [
       "Occupied",
       roomId,
@@ -59,9 +59,8 @@ router.post("/", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/reservations/my - get all reservations for the logged-in guest ONLY
+// GET /api/reservations/my
 router.get("/my", authenticate, async (req, res) => {
-  // Only guests can call this endpoint
   if (req.user.userType !== "guest") {
     return res.status(403).json({ error: "Only guests can access this route" });
   }
@@ -83,9 +82,8 @@ router.get("/my", authenticate, async (req, res) => {
        JOIN Room rm ON rm.roomId = r.roomId
        WHERE r.guestId = ?
        ORDER BY r.reservationId DESC`,
-      [req.user.id], // <-- uses the JWT id, never trusts client input
+      [req.user.id],
     );
-
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -93,14 +91,15 @@ router.get("/my", authenticate, async (req, res) => {
   }
 });
 
-// PUT /api/reservations/:id/cancel - guest cancels their own booking
+// PUT /api/reservations/:id/cancel
 router.put("/:id/cancel", authenticate, async (req, res) => {
   const reservationId = req.params.id;
+  const { reason } = req.body;
 
   try {
-    // Fetch the reservation first to verify ownership and status
+    // ── 1. Load reservation ──────────────────────────────────────────────────
     const [rows] = await pool.query(
-      "SELECT guestId, roomId, status FROM Reservation WHERE reservationId = ?",
+      "SELECT guestId, roomId, status, checkIn, total_price FROM Reservation WHERE reservationId = ?",
       [reservationId],
     );
 
@@ -110,7 +109,7 @@ router.put("/:id/cancel", authenticate, async (req, res) => {
 
     const reservation = rows[0];
 
-    // Guests can only cancel their own reservations
+    // ── 2. Ownership check ───────────────────────────────────────────────────
     if (
       req.user.userType === "guest" &&
       Number(reservation.guestId) !== Number(req.user.id)
@@ -120,26 +119,57 @@ router.put("/:id/cancel", authenticate, async (req, res) => {
         .json({ error: "Not authorised to cancel this booking" });
     }
 
-    // Only allow cancelling Pending or Confirmed bookings
+    // ── 3. Status check ──────────────────────────────────────────────────────
     if (!["Pending", "Confirmed"].includes(reservation.status)) {
       return res.status(400).json({
         error: `Cannot cancel a booking with status: ${reservation.status}`,
       });
     }
 
-    // Cancel the reservation
+    // ── 4. Calculate refund ──────────────────────────────────────────────────
+    const [paymentRows] = await pool.query(
+      "SELECT amount FROM Payment WHERE reservationId = ? LIMIT 1",
+      [reservationId],
+    );
+    const paidAmount = Number(paymentRows[0]?.amount || 0);
+    const quote = getRefundQuote(paidAmount, reservation.checkIn);
+
+    // ── 5. Cancel the reservation ────────────────────────────────────────────
     await pool.query(
       "UPDATE Reservation SET status = 'Cancelled' WHERE reservationId = ?",
       [reservationId],
     );
 
-    // Free up the room back to Available
+    // ── 6. Free up the room ──────────────────────────────────────────────────
     await pool.query(
       "UPDATE Room SET status = 'Available' WHERE roomId = ? AND status = 'Occupied'",
       [reservation.roomId],
     );
 
-    res.json({ success: true, message: "Booking cancelled successfully" });
+    // ── 7. Create refund record (only if guest paid something) ───────────────
+    if (paidAmount > 0) {
+      await pool.query(
+        `INSERT INTO Refund
+           (reservationId, guestId, paidAmount, refundAmount, refundRate, reason, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'Pending')`,
+        [
+          reservationId,
+          reservation.guestId,
+          paidAmount,
+          quote.refundAmount,
+          quote.rate,
+          reason || null,
+        ],
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "Booking cancelled successfully",
+      paidAmount,
+      refundAmount: quote.refundAmount,
+      refundRate: quote.rate,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });

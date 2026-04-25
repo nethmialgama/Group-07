@@ -21,6 +21,46 @@ function Payment({ onNavigate, room }) {
 
   const hasFetchedQuote = useRef(false);
 
+  // ── Fetch payment quote from backend ──────────────────────────────────────
+  useEffect(() => {
+    if (hasFetchedQuote.current) return;
+    hasFetchedQuote.current = true;
+
+    const fetchQuote = async () => {
+      setQuoteLoading(true);
+      try {
+        const res = await fetch(
+          `http://localhost:5000/api/payments/policy/${selectedRoom?.reservationId}`,
+          { headers: getAuthHeaders() },
+        );
+        const data = await res.json();
+        if (!res.ok)
+          throw new Error(data.error || "Failed to load payment info");
+
+        setQuote(data);
+        // Default slider to the minimum required amount
+        setPayAmount(data.advancePayment.requiredAmount);
+      } catch (err) {
+        console.error(err);
+        showToast("Could not load payment details. Please try again.", "error");
+        // Fallback: use raw price from room prop
+        const fallback = Number(
+          String(
+            selectedRoom?.totalPrice ||
+              selectedRoom?.rawPrice ||
+              selectedRoom?.price ||
+              "0",
+          ).replace(/[^0-9.]/g, ""),
+        );
+        setPayAmount(fallback);
+      } finally {
+        setQuoteLoading(false);
+      }
+    };
+
+    if (selectedRoom?.reservationId) fetchQuote();
+  }, []);
+
   // ── Early return AFTER hooks ───────────────────────────────────────────────
   const selectedRoom = room || null;
   if (!selectedRoom || !selectedRoom.reservationId) {
@@ -37,46 +77,6 @@ function Payment({ onNavigate, room }) {
       </div>
     );
   }
-
-  // ── Fetch payment quote from backend ──────────────────────────────────────
-  useEffect(() => {
-    if (hasFetchedQuote.current) return;
-    hasFetchedQuote.current = true;
-
-    const fetchQuote = async () => {
-      setQuoteLoading(true);
-      try {
-        const res = await fetch(
-          `http://localhost:5000/api/payments/policy/${selectedRoom.reservationId}`,
-          { headers: getAuthHeaders() },
-        );
-        const data = await res.json();
-        if (!res.ok)
-          throw new Error(data.error || "Failed to load payment info");
-
-        setQuote(data);
-        // Default slider to the minimum required amount
-        setPayAmount(data.advancePayment.requiredAmount);
-      } catch (err) {
-        console.error(err);
-        showToast("Could not load payment details. Please try again.", "error");
-        // Fallback: use raw price from room prop
-        const fallback = Number(
-          String(
-            selectedRoom.totalPrice ||
-              selectedRoom.rawPrice ||
-              selectedRoom.price ||
-              "0",
-          ).replace(/[^0-9.]/g, ""),
-        );
-        setPayAmount(fallback);
-      } finally {
-        setQuoteLoading(false);
-      }
-    };
-
-    fetchQuote();
-  }, []);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const totalPrice =
