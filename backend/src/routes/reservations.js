@@ -146,8 +146,8 @@ router.put("/:id/cancel", authenticate, async (req, res) => {
       [reservation.roomId],
     );
 
-    // ── 7. Create refund record (only if guest paid something) ───────────────
-    if (paidAmount > 0) {
+    // ── 7. Create refund record (only if refund amount is greater than 0) ────
+    if (paidAmount > 0 && quote.refundAmount > 0) {
       await pool.query(
         `INSERT INTO Refund
            (reservationId, guestId, paidAmount, refundAmount, refundRate, reason, status)

@@ -243,7 +243,16 @@ CREATE TABLE IF NOT EXISTS Refund (
   FOREIGN KEY (guestId)       REFERENCES Guest(guestId)
 );
 
-
+CREATE TABLE IF NOT EXISTS PasswordResetTokens (
+    tokenId INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(100) NOT NULL,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    expiresAt DATETIME NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_token (token),
+    INDEX idx_email (email)
+);
 
 -- INSERT Sample Rooms
 INSERT INTO Room (roomNumber, roomType, capacity, roomPrice, amenities, description, status)
