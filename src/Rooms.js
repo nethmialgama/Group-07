@@ -3,6 +3,32 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { showToast } from "./toast";
 
+const getRoomImage = (roomType = "", idx = 0) => {
+  const normalized = String(roomType).trim().toLowerCase();
+
+  if (normalized.includes("single")) {
+    const singleImages = ["/images/single1.png", "/images/single2.png"];
+    return singleImages[idx % singleImages.length];
+  }
+
+  if (normalized.includes("double")) {
+    const doubleImages = [
+      "/images/double1.png",
+      "/images/double2.png",
+      "/images/double3.png",
+    ];
+    return doubleImages[idx % doubleImages.length];
+  }
+
+  // Support both "trible" (existing file name) and "triple" text values.
+  if (normalized.includes("trible") || normalized.includes("triple")) {
+    const tribleImages = ["/images/trible1.png", "/images/trible2.png"];
+    return tribleImages[idx % tribleImages.length];
+  }
+
+  return "/images/single1.png";
+};
+
 function Rooms({ onNavigate }) {
   const [roomsData, setRoomsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +54,7 @@ function Rooms({ onNavigate }) {
               .filter(Boolean),
             price: Number(room.roomPrice || 0).toLocaleString(),
             rating: 4 + (idx % 10) / 10,
-            image:
-              "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
+            image: getRoomImage(room.roomType, idx),
             status: room.status,
           }));
 
