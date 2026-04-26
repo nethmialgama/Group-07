@@ -643,7 +643,8 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
   return (
     <nav className="navbar">
       <div className="logo" onClick={() => onNavigate("home")}>
-        Smart Hotel
+        <img className="brand-logo-img" src="/images/logo.png" alt="CEYLONO" />
+        <span className="brand-logo-text">CEYLONO</span>
       </div>
       <div className="nav-links">
         <a
@@ -759,7 +760,7 @@ function Footer({ onNavigate }) {
         </div>
       </div>
       <div className="footer-bottom">
-        <p>© 2025 Smart Hotel — All rights reserved.</p>
+        <p>© 2025 CEYLONO — All rights reserved.</p>
       </div>
     </footer>
   );

@@ -22,12 +22,25 @@ body {
 }
 
 .logo {
-  background-color: #e0e0e0;
-  padding: 8px 20px;
-  font-weight: bold;
-  color: #333;
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
+}
+
+.brand-logo-img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.brand-logo-text {
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 0.8px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 200%;
 }
 
 .nav-links a {
@@ -1565,10 +1578,12 @@ body {
 .admin-logo-box {
   display: flex;
   align-items: center;
-  font-weight: bold;
-  font-size: 1.2rem;
   margin-bottom: 50px;
   gap: 10px;
+}
+
+.admin-logo-box .brand-logo-text {
+  color: #f9fafb;
 }
 
 .logo-tag {
@@ -1645,11 +1660,9 @@ body {
 }
 
 .admin-quick-brand {
-  background-color: #e0e0e0;
-  padding: 8px 20px;
-  font-weight: bold;
-  color: #333;
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
   white-space: nowrap;
 }

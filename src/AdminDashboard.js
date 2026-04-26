@@ -80,7 +80,22 @@ function AdminDashboard({ onNavigate, onLogout }) {
       {/* Main Content */}
       <div className="admin-content">
         <div className="admin-quick-nav">
-          <span className="admin-quick-brand">Smart Hotel</span>
+          <div
+            className="admin-quick-brand"
+            onClick={() => onNavigate("home")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") onNavigate("home");
+            }}
+          >
+            <img
+              className="brand-logo-img"
+              src="/images/logo.png"
+              alt="CEYLONO"
+            />
+            <span className="brand-logo-text">CEYLONO</span>
+          </div>
           <div className="admin-quick-links">
             <a
               href="#"

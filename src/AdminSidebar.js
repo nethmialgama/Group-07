@@ -5,7 +5,8 @@ function AdminSidebar({ activePage, onNavigate }) {
   return (
     <div className="admin-sidebar">
       <div className="admin-logo-box">
-        <span className="logo-tag">Logo</span> SMART HOTEL
+        <img className="brand-logo-img" src="/images/logo.png" alt="CEYLONO" />
+        <span className="brand-logo-text">CEYLONO</span>
       </div>
 
       <ul className="admin-menu">
