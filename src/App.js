@@ -78,6 +78,55 @@ function App() {
   const [role, setRole] = useState(initialAuth.role || "");
   const [selectedAdminUser, setSelectedAdminUser] = useState(null);
   const [featuredRooms, setFeaturedRooms] = useState([]);
+  const [homeCheckIn, setHomeCheckIn] = useState("");
+  const [homeCheckOut, setHomeCheckOut] = useState("");
+  const [homeGuests, setHomeGuests] = useState("2-adults");
+  const [roomSearchCriteria, setRoomSearchCriteria] = useState(null);
+
+  const todayIso = new Date().toISOString().split("T")[0];
+
+  const guestSelectionToCapacity = (selection) => {
+    if (selection === "1-adult") return 1;
+    if (selection === "2-adults") return 2;
+    if (selection === "2-adults-1-kid") return 3;
+    return 2;
+  };
+
+  const handleHomeSearch = () => {
+    if (!homeCheckIn || !homeCheckOut) {
+      showToast("Please select check-in and check-out dates.", "warning");
+      return;
+    }
+
+    if (homeCheckIn < todayIso) {
+      showToast("Past dates are not allowed for check-in.", "warning");
+      return;
+    }
+
+    if (homeCheckOut <= homeCheckIn) {
+      showToast("Check-out date must be after check-in.", "warning");
+      return;
+    }
+
+    const nights = Math.ceil(
+      (new Date(homeCheckOut) - new Date(homeCheckIn)) / (24 * 60 * 60 * 1000),
+    );
+
+    if (nights > 30) {
+      const confirmDates = window.confirm(
+        "Your stay is more than 30 days. Are you sure you want these check-in/check-out dates?",
+      );
+      if (!confirmDates) return;
+    }
+
+    setRoomSearchCriteria({
+      checkIn: homeCheckIn,
+      checkOut: homeCheckOut,
+      capacity: guestSelectionToCapacity(homeGuests),
+      guestSelection: homeGuests,
+    });
+    handleNavigation("rooms");
+  };
 
   useEffect(() => {
     const loadFeaturedRooms = async () => {
@@ -341,7 +390,10 @@ function App() {
           isLoggedIn={isLoggedIn}
           onLogout={handleUserLogout}
         />
-        <Rooms onNavigate={handleNavigation} />
+        <Rooms
+          onNavigate={handleNavigation}
+          searchCriteria={roomSearchCriteria}
+        />
         <Footer onNavigate={handleNavigation} />
       </div>
     );
@@ -558,20 +610,40 @@ function App() {
         <div className="search-bar">
           <div className="search-field">
             <label>Check-in</label>
-            <input type="date" />
+            <input
+              type="date"
+              min={todayIso}
+              value={homeCheckIn}
+              onChange={(e) => {
+                const nextCheckIn = e.target.value;
+                setHomeCheckIn(nextCheckIn);
+                if (homeCheckOut && homeCheckOut <= nextCheckIn) {
+                  setHomeCheckOut("");
+                }
+              }}
+            />
           </div>
           <div className="search-field">
             <label>Check-out</label>
-            <input type="date" />
+            <input
+              type="date"
+              min={homeCheckIn || todayIso}
+              value={homeCheckOut}
+              onChange={(e) => setHomeCheckOut(e.target.value)}
+            />
           </div>
           <div className="search-field">
             <label>Guests</label>
-            <input type="number" placeholder="2 Adults" />
+            <select
+              value={homeGuests}
+              onChange={(e) => setHomeGuests(e.target.value)}
+            >
+              <option value="1-adult">1 Adult</option>
+              <option value="2-adults">2 Adults</option>
+              <option value="2-adults-1-kid">2 Adults + 1 Kid</option>
+            </select>
           </div>
-          <button
-            className="search-btn"
-            onClick={() => handleNavigation("rooms")}
-          >
+          <button className="search-btn" onClick={handleHomeSearch}>
             Search
           </button>
         </div>

@@ -23,20 +23,49 @@ router.post("/", authenticate, async (req, res) => {
 
   try {
     const [roomRows] = await pool.query(
-      "SELECT roomPrice, status FROM Room WHERE roomId = ?",
+      "SELECT roomPrice FROM Room WHERE roomId = ?",
       [roomId],
     );
     if (roomRows.length === 0)
       return res.status(400).json({ error: "Invalid roomId" });
-    if (roomRows[0].status !== "Available") {
+
+    const inDate = new Date(checkIn);
+    const outDate = new Date(checkOut);
+    if (Number.isNaN(inDate.getTime()) || Number.isNaN(outDate.getTime())) {
       return res
         .status(400)
-        .json({ error: "Room is not available for booking" });
+        .json({ error: "Invalid check-in/check-out dates" });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (inDate < today) {
+      return res
+        .status(400)
+        .json({ error: "Past check-in dates are not allowed" });
+    }
+
+    if (outDate <= inDate) {
+      return res.status(400).json({ error: "checkOut must be after checkIn" });
+    }
+
+    const [conflicts] = await pool.query(
+      `SELECT reservationId
+       FROM Reservation
+       WHERE roomId = ?
+         AND status IN ('Pending', 'Confirmed', 'Checked-In')
+         AND NOT (DATE(checkOut) <= DATE(?) OR DATE(checkIn) >= DATE(?))
+       LIMIT 1`,
+      [roomId, checkIn, checkOut],
+    );
+
+    if (conflicts.length > 0) {
+      return res
+        .status(400)
+        .json({ error: "Room is not available for selected dates" });
     }
 
     const roomPrice = parseFloat(roomRows[0].roomPrice || 0);
-    const inDate = new Date(checkIn);
-    const outDate = new Date(checkOut);
     const msPerDay = 24 * 60 * 60 * 1000;
     const nights = Math.max(1, Math.ceil((outDate - inDate) / msPerDay));
     const totalPrice = (roomPrice * nights).toFixed(2);
@@ -46,11 +75,6 @@ router.post("/", authenticate, async (req, res) => {
        VALUES (?, ?, NOW(), 'Confirmed', ?, ?, ?, ?)`,
       [checkIn, checkOut, totalPrice, guestId, roomId, staffId || null],
     );
-
-    await pool.query("UPDATE Room SET status = ? WHERE roomId = ?", [
-      "Occupied",
-      roomId,
-    ]);
 
     res.status(201).json({ reservationId: result.insertId, totalPrice });
   } catch (err) {

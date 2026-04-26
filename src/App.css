@@ -205,7 +205,8 @@ body {
   backdrop-filter: blur(5px);
 }
 
-.search-field input {
+.search-field input,
+.search-field select {
   padding: 12px 15px;
   border: none;
   border-radius: 5px;

@@ -34,7 +34,7 @@ const getRoomImage = (roomType = "", idx = 0, capacity = 0) => {
   return "/images/single1.png";
 };
 
-function Rooms({ onNavigate }) {
+function Rooms({ onNavigate, searchCriteria }) {
   const [roomsData, setRoomsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acFilter, setAcFilter] = useState("all");
@@ -43,31 +43,43 @@ function Rooms({ onNavigate }) {
   useEffect(() => {
     const loadRooms = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/rooms");
+        const params = new URLSearchParams();
+        if (searchCriteria?.checkIn)
+          params.set("checkIn", searchCriteria.checkIn);
+        if (searchCriteria?.checkOut) {
+          params.set("checkOut", searchCriteria.checkOut);
+        }
+        if (searchCriteria?.capacity) {
+          params.set("capacity", String(searchCriteria.capacity));
+        }
+
+        const url = params.toString()
+          ? `http://localhost:5000/api/rooms?${params.toString()}`
+          : "http://localhost:5000/api/rooms";
+
+        const response = await fetch(url);
         const data = await response.json();
         if (!response.ok) {
           throw new Error(data.error || "Failed to load rooms");
         }
 
-        const mapped = data
-          .filter((room) => room.status === "Available")
-          .map((room, idx) => ({
-            id: room.roomId,
-            roomId: room.roomId,
-            roomType: room.roomType,
-            capacity: Number(room.capacity || 0),
-            title: `${room.roomType} Room`,
-            tags: (room.amenities || "Wi-Fi, AC")
-              .split(",")
-              .map((item) => item.trim())
-              .filter(Boolean),
-            amenitiesText: String(room.amenities || ""),
-            descriptionText: String(room.description || ""),
-            price: Number(room.roomPrice || 0).toLocaleString(),
-            rating: 4 + (idx % 10) / 10,
-            image: getRoomImage(room.roomType, idx, room.capacity),
-            status: room.status,
-          }));
+        const mapped = data.map((room, idx) => ({
+          id: room.roomId,
+          roomId: room.roomId,
+          roomType: room.roomType,
+          capacity: Number(room.capacity || 0),
+          title: `${room.roomType} Room`,
+          tags: (room.amenities || "Wi-Fi, AC")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+          amenitiesText: String(room.amenities || ""),
+          descriptionText: String(room.description || ""),
+          price: Number(room.roomPrice || 0).toLocaleString(),
+          rating: 4 + (idx % 10) / 10,
+          image: getRoomImage(room.roomType, idx, room.capacity),
+          status: room.status,
+        }));
 
         setRoomsData(mapped);
       } catch (err) {
@@ -79,7 +91,16 @@ function Rooms({ onNavigate }) {
     };
 
     loadRooms();
-  }, []);
+  }, [searchCriteria]);
+
+  useEffect(() => {
+    const capacity = Number(searchCriteria?.capacity || 0);
+    if (capacity === 1) setBedFilter("single");
+    else if (capacity === 2) setBedFilter("double");
+    else if (capacity === 3) setBedFilter("triple");
+    else setBedFilter("all");
+    setAcFilter("all");
+  }, [searchCriteria]);
 
   const filteredRooms = roomsData.filter((room) => {
     const roomText =
