@@ -3,7 +3,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { showToast } from "./toast";
 
-const getRoomImage = (roomType = "", idx = 0) => {
+const getRoomImage = (roomType = "", idx = 0, capacity = 0) => {
   const normalized = String(roomType).trim().toLowerCase();
 
   if (normalized.includes("single")) {
@@ -21,7 +21,12 @@ const getRoomImage = (roomType = "", idx = 0) => {
   }
 
   // Support both "trible" (existing file name) and "triple" text values.
-  if (normalized.includes("trible") || normalized.includes("triple")) {
+  if (
+    normalized.includes("trible") ||
+    normalized.includes("triple") ||
+    normalized.includes("family") ||
+    Number(capacity) === 3
+  ) {
     const tribleImages = ["/images/trible1.png", "/images/trible2.png"];
     return tribleImages[idx % tribleImages.length];
   }
@@ -32,6 +37,8 @@ const getRoomImage = (roomType = "", idx = 0) => {
 function Rooms({ onNavigate }) {
   const [roomsData, setRoomsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [acFilter, setAcFilter] = useState("all");
+  const [bedFilter, setBedFilter] = useState("all");
 
   useEffect(() => {
     const loadRooms = async () => {
@@ -47,14 +54,18 @@ function Rooms({ onNavigate }) {
           .map((room, idx) => ({
             id: room.roomId,
             roomId: room.roomId,
+            roomType: room.roomType,
+            capacity: Number(room.capacity || 0),
             title: `${room.roomType} Room`,
             tags: (room.amenities || "Wi-Fi, AC")
               .split(",")
               .map((item) => item.trim())
               .filter(Boolean),
+            amenitiesText: String(room.amenities || ""),
+            descriptionText: String(room.description || ""),
             price: Number(room.roomPrice || 0).toLocaleString(),
             rating: 4 + (idx % 10) / 10,
-            image: getRoomImage(room.roomType, idx),
+            image: getRoomImage(room.roomType, idx, room.capacity),
             status: room.status,
           }));
 
@@ -70,6 +81,38 @@ function Rooms({ onNavigate }) {
     loadRooms();
   }, []);
 
+  const filteredRooms = roomsData.filter((room) => {
+    const roomText =
+      `${room.amenitiesText || ""} ${room.descriptionText || ""}`.toLowerCase();
+    const typeText = `${room.roomType || ""} ${room.title || ""}`.toLowerCase();
+
+    const hasNonAc = /\bnon[-\s]?ac\b/.test(roomText);
+    const hasAc =
+      (/\bac\b/.test(roomText) ||
+        /\ba\s*\/\s*c\b/.test(roomText) ||
+        /\bair\s?condition(ed)?\b/.test(roomText)) &&
+      !hasNonAc;
+
+    const acMatches =
+      acFilter === "all" ||
+      (acFilter === "ac" && hasAc) ||
+      (acFilter === "non-ac" && hasNonAc);
+
+    const bedMatches =
+      bedFilter === "all" ||
+      (bedFilter === "single" &&
+        (room.capacity === 1 || typeText.includes("single"))) ||
+      (bedFilter === "double" &&
+        (room.capacity === 2 || typeText.includes("double"))) ||
+      (bedFilter === "triple" &&
+        (room.capacity === 3 ||
+          typeText.includes("triple") ||
+          typeText.includes("trible") ||
+          typeText.includes("family")));
+
+    return acMatches && bedMatches;
+  });
+
   return (
     <div className="page-container">
       {/* Page Title */}
@@ -81,14 +124,25 @@ function Rooms({ onNavigate }) {
       {/* Filter Bar */}
       <div className="filter-bar">
         <div className="filter-group">
-          <button className="filter-btn">Sort by ▼</button>
-          <button className="filter-toggle">Wi-Fi</button>
-          <button className="filter-toggle">AC</button>
-          <button className="filter-toggle">Pool</button>
-        </div>
-        <div className="search-rooms">
-          <span className="search-icon">🔍</span>
-          <input type="text" placeholder="Search rooms..." />
+          <select
+            className="filter-btn"
+            value={acFilter}
+            onChange={(e) => setAcFilter(e.target.value)}
+          >
+            <option value="all">AC Filter: All</option>
+            <option value="ac">AC</option>
+            <option value="non-ac">Non AC</option>
+          </select>
+          <select
+            className="filter-btn"
+            value={bedFilter}
+            onChange={(e) => setBedFilter(e.target.value)}
+          >
+            <option value="all">Bed Filter: All</option>
+            <option value="single">Single Bed</option>
+            <option value="double">Double Bed</option>
+            <option value="triple">Triple Bed</option>
+          </select>
         </div>
       </div>
 
@@ -96,7 +150,7 @@ function Rooms({ onNavigate }) {
       {loading ? <p>Loading rooms...</p> : null}
 
       <div className="room-grid">
-        {roomsData.map((room) => (
+        {filteredRooms.map((room) => (
           <div key={room.id} className="room-card">
             <img src={room.image} alt={room.title} />
             <div className="room-info">
@@ -139,6 +193,7 @@ function Rooms({ onNavigate }) {
           </div>
         ))}
       </div>
+      {!loading && filteredRooms.length === 0 ? <p>No rooms found.</p> : null}
     </div>
   );
 }
