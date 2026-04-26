@@ -27,6 +27,7 @@ CREATE TABLE Guest (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(15) NOT NULL,
+    dob DATE,
     address TEXT,
     loyalty_points INT DEFAULT 0,
     registration_date DATETIME DEFAULT CURRENT_TIMESTAMP,

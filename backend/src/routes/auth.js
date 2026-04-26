@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const { authenticate, getJwtSecret } = require("../middleware/auth");
 
 let guestPasswordColumnEnsured = false;
+let guestProfileColumnsEnsured = false;
 
 async function ensureGuestPasswordColumn() {
   if (guestPasswordColumnEnsured) return;
@@ -20,6 +21,26 @@ async function ensureGuestPasswordColumn() {
   }
 
   guestPasswordColumnEnsured = true;
+}
+
+async function ensureGuestProfileColumns() {
+  if (guestProfileColumnsEnsured) return;
+
+  const [dobColumns] = await pool.query("SHOW COLUMNS FROM Guest LIKE 'dob'");
+  if (dobColumns.length === 0) {
+    await pool.query("ALTER TABLE Guest ADD COLUMN dob DATE NULL AFTER phone");
+  }
+
+  const [addressColumns] = await pool.query(
+    "SHOW COLUMNS FROM Guest LIKE 'address'",
+  );
+  if (addressColumns.length === 0) {
+    await pool.query(
+      "ALTER TABLE Guest ADD COLUMN address TEXT NULL AFTER dob",
+    );
+  }
+
+  guestProfileColumnsEnsured = true;
 }
 
 function hashPassword(password) {
@@ -233,6 +254,8 @@ router.post("/signup", async (req, res) => {
 // GET /api/auth/profile - get current user profile
 router.get("/profile", authenticate, async (req, res) => {
   try {
+    await ensureGuestProfileColumns();
+
     if (req.user.userType === "staff") {
       const [rows] = await pool.query(
         "SELECT staffId, name, email, phone, role FROM Staff WHERE staffId = ?",
@@ -244,7 +267,7 @@ router.get("/profile", authenticate, async (req, res) => {
     }
 
     const [rows] = await pool.query(
-      "SELECT guestId, name, email, phone FROM Guest WHERE guestId = ?",
+      "SELECT guestId, name, email, phone, dob, address FROM Guest WHERE guestId = ?",
       [req.user.id],
     );
     if (rows.length === 0)
@@ -259,7 +282,7 @@ router.get("/profile", authenticate, async (req, res) => {
 
 // PUT /api/auth/profile - guest can update email and phone
 router.put("/profile", authenticate, async (req, res) => {
-  const { email, phone } = req.body;
+  const { email, phone, dob, address } = req.body;
 
   if (req.user.userType !== "guest") {
     return res
@@ -272,6 +295,8 @@ router.put("/profile", authenticate, async (req, res) => {
   }
 
   try {
+    await ensureGuestProfileColumns();
+
     const [existing] = await pool.query(
       "SELECT guestId FROM Guest WHERE email = ? AND guestId <> ?",
       [email, req.user.id],
@@ -282,14 +307,131 @@ router.put("/profile", authenticate, async (req, res) => {
     }
 
     await pool.query(
-      "UPDATE Guest SET email = ?, phone = ? WHERE guestId = ?",
-      [email, phone, req.user.id],
+      "UPDATE Guest SET email = ?, phone = ?, dob = ?, address = ? WHERE guestId = ?",
+      [email, phone, dob || null, address || null, req.user.id],
     );
 
     return res.json({ success: true, message: "Profile updated" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });
+  }
+});
+
+// PUT /api/auth/change-password - change current user's password
+router.put("/change-password", authenticate, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res
+      .status(400)
+      .json({ error: "Current password and new password are required" });
+  }
+
+  if (newPassword.length < 8) {
+    return res
+      .status(400)
+      .json({ error: "New password must be at least 8 characters" });
+  }
+
+  try {
+    await ensureGuestPasswordColumn();
+
+    const table = req.user.userType === "staff" ? "Staff" : "Guest";
+    const idColumn = req.user.userType === "staff" ? "staffId" : "guestId";
+
+    const [rows] = await pool.query(
+      `SELECT ${idColumn}, password_hash FROM ${table} WHERE ${idColumn} = ?`,
+      [req.user.id],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const existingHash = rows[0].password_hash;
+    if (hashPassword(currentPassword) !== existingHash) {
+      return res.status(400).json({ error: "Current password is incorrect" });
+    }
+
+    if (hashPassword(newPassword) === existingHash) {
+      return res.status(400).json({
+        error: "New password must be different from current password",
+      });
+    }
+
+    await pool.query(
+      `UPDATE ${table} SET password_hash = ? WHERE ${idColumn} = ?`,
+      [hashPassword(newPassword), req.user.id],
+    );
+
+    return res.json({ success: true, message: "Password updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// DELETE /api/auth/account - delete current guest account and related records
+router.delete("/account", authenticate, async (req, res) => {
+  if (req.user.userType !== "guest") {
+    return res
+      .status(403)
+      .json({ error: "Only guests can delete this account" });
+  }
+
+  const guestId = Number(req.user.id);
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [guestRows] = await connection.query(
+      "SELECT email FROM Guest WHERE guestId = ?",
+      [guestId],
+    );
+
+    if (guestRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const guestEmail = guestRows[0].email;
+
+    const [reservationRows] = await connection.query(
+      "SELECT reservationId FROM Reservation WHERE guestId = ?",
+      [guestId],
+    );
+    const reservationIds = reservationRows.map((r) => r.reservationId);
+
+    if (reservationIds.length > 0) {
+      await connection.query("DELETE FROM Refund WHERE reservationId IN (?)", [
+        reservationIds,
+      ]);
+    }
+
+    await connection.query("DELETE FROM Refund WHERE guestId = ?", [guestId]);
+    await connection.query("DELETE FROM Reservation WHERE guestId = ?", [
+      guestId,
+    ]);
+    await connection.query(
+      "DELETE FROM Room_Service_Orders WHERE guestId = ?",
+      [guestId],
+    );
+    await connection.query("DELETE FROM Review WHERE guestId = ?", [guestId]);
+    await connection.query("DELETE FROM PasswordResetTokens WHERE email = ?", [
+      guestEmail,
+    ]);
+    await connection.query("DELETE FROM Guest WHERE guestId = ?", [guestId]);
+
+    await connection.commit();
+    return res.json({ success: true, message: "Account deleted" });
+  } catch (err) {
+    await connection.rollback();
+    console.error(err);
+    return res.status(500).json({ error: "Failed to delete account" });
+  } finally {
+    connection.release();
   }
 });
 
