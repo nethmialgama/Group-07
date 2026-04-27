@@ -8,6 +8,18 @@ body {
   color: #333;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 /* --- Navbar --- */
 .navbar {
   display: flex;
@@ -332,6 +344,7 @@ body {
   padding: 60px 80px 20px 80px;
   color: #1f2937;
   font-size: 1rem;
+  margin-top: auto;
 }
 
 .footer-content {
@@ -355,9 +368,29 @@ body {
 
 .footer-bottom {
   text-align: center;
-  margin-top: 50px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(31, 41, 55, 0.2);
   font-size: 0.9rem;
   color: #4b5563;
+}
+
+.footer-bottom p {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .footer {
+    padding: 40px 20px 16px;
+  }
+
+  .footer-content {
+    gap: 20px;
+  }
+
+  .footer-bottom {
+    margin-top: 20px;
+  }
 }
 
 /* In-app toast notification */

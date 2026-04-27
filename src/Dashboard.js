@@ -35,7 +35,9 @@ function StatusBadge({ status }) {
 }
 
 function Dashboard({ onNavigate, onLogout }) {
-  const { name } = getStoredAuth();
+  const auth = getStoredAuth();
+  const displayName =
+    String(auth?.user?.name || auth?.user?.fullName || "").trim() || "User";
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,13 +109,6 @@ function Dashboard({ onNavigate, onLogout }) {
     <div className="page-container dashboard-container">
       {/* LEFT SIDEBAR */}
       <div className="dashboard-sidebar">
-        <div className="sidebar-user-info">
-          <div className="sidebar-avatar">
-            {(name || "U").charAt(0).toUpperCase()}
-          </div>
-          <div className="sidebar-user-name">{name || "Guest"}</div>
-        </div>
-
         <button className="sidebar-btn" onClick={() => onNavigate("home")}>
           🏨 Hotel Details
         </button>
@@ -135,7 +130,7 @@ function Dashboard({ onNavigate, onLogout }) {
       {/* MAIN CONTENT */}
       <div className="dashboard-content">
         <div className="welcome-header">
-          <h1>Welcome back, {name || "Guest"} 👋</h1>
+          <h1>Welcome back, {displayName} 👋</h1>
           <p>Manage your reservations and booking history</p>
         </div>
 

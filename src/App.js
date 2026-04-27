@@ -477,7 +477,11 @@ function App() {
           isLoggedIn={isLoggedIn}
           onLogout={handleUserLogout}
         />
-        <Dashboard onNavigate={handleNavigation} recentBooking={selectedRoom} />
+        <Dashboard
+          onNavigate={handleNavigation}
+          recentBooking={selectedRoom}
+          onLogout={handleUserLogout}
+        />
         <Footer onNavigate={handleNavigation} />
       </div>
     );
