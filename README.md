@@ -1,2 +1,7 @@
 # Group-07
-Group Project 
+
+Group Project
+
+## Documentation
+
+- [Software Requirements Specification](SRS.md)
