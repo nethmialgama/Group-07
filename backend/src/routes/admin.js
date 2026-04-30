@@ -434,4 +434,26 @@ router.put("/refunds/:id", async (req, res) => {
   }
 });
 
+// ─── GET /api/admin/revenue-by-room-type ─────────────────────────────────────
+router.get("/revenue-by-room-type", async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        rm.roomType,
+        COUNT(r.reservationId) AS booking_count,
+        COALESCE(SUM(r.total_price), 0) AS revenue
+      FROM Reservation r
+      JOIN Room rm ON rm.roomId = r.roomId
+      WHERE r.status NOT IN ('Cancelled')
+      GROUP BY rm.roomType
+      ORDER BY revenue DESC
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 module.exports = router;
