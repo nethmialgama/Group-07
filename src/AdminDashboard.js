@@ -1,9 +1,36 @@
 // src/AdminDashboard.js
 import React, { useEffect, useState } from "react";
-import AdminSidebar from "./AdminSidebar"; // <--- Import the new sidebar
+import AdminSidebar from "./AdminSidebar";
 import AccountAvatarMenu from "./AccountAvatarMenu";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
+
+// Import Chart.js components
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
+import { Line, Pie } from "react-chartjs-2";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+);
 
 function AdminDashboard({ onNavigate, onLogout }) {
   const [stats, setStats] = useState([
@@ -14,39 +41,43 @@ function AdminDashboard({ onNavigate, onLogout }) {
   ]);
 
   const [recentBookings, setRecentBookings] = useState([]);
+  const [monthlyBookings, setMonthlyBookings] = useState([]);
+  const [revenueByRoomType, setRevenueByRoomType] = useState([]);
 
+  // Load all dashboard data
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [statsRes, bookingsRes] = await Promise.all([
-          fetch("http://localhost:5000/api/admin/stats", {
-            headers: {
-              ...getAuthHeaders(),
-            },
-          }),
-          fetch("http://localhost:5000/api/admin/recent-bookings", {
-            headers: {
-              ...getAuthHeaders(),
-            },
-          }),
-        ]);
+        const [statsRes, bookingsRes, monthlyRes, revenueRoomRes] =
+          await Promise.all([
+            fetch("http://localhost:5000/api/admin/stats", {
+              headers: getAuthHeaders(),
+            }),
+            fetch("http://localhost:5000/api/admin/recent-bookings", {
+              headers: getAuthHeaders(),
+            }),
+            fetch("http://localhost:5000/api/admin/bookings-monthly", {
+              headers: getAuthHeaders(),
+            }),
+            fetch("http://localhost:5000/api/admin/revenue-by-room-type", {
+              headers: getAuthHeaders(),
+            }),
+          ]);
 
         const statsData = await statsRes.json();
         const bookingsData = await bookingsRes.json();
+        const monthlyData = await monthlyRes.json();
+        const revenueRoomData = await revenueRoomRes.json();
 
-        if (!statsRes.ok) {
-          throw new Error(statsData.error || "Failed to load dashboard stats");
-        }
-        if (!bookingsRes.ok) {
-          throw new Error(
-            bookingsData.error || "Failed to load recent bookings",
-          );
-        }
-
+        // Update stats
         setStats([
-          { title: "Rooms", value: String(statsData.rooms), icon: "🛏️" },
-          { title: "Bookings", value: String(statsData.bookings), icon: "📅" },
-          { title: "Users", value: String(statsData.users), icon: "👤" },
+          { title: "Rooms", value: String(statsData.rooms || 0), icon: "🛏️" },
+          {
+            title: "Bookings",
+            value: String(statsData.bookings || 0),
+            icon: "📅",
+          },
+          { title: "Users", value: String(statsData.users || 0), icon: "👤" },
           {
             title: "Revenue",
             value: `LKR ${Number(statsData.revenue || 0).toLocaleString()}`,
@@ -57,27 +88,88 @@ function AdminDashboard({ onNavigate, onLogout }) {
         setRecentBookings(
           bookingsData.map((item) => ({
             id: `#${item.reservationId}`,
-            guest: item.guest,
+            guest: item.guest || item.name,
             room: item.roomType,
             in: new Date(item.checkIn).toLocaleDateString(),
             out: new Date(item.checkOut).toLocaleDateString(),
           })),
         );
+
+        setMonthlyBookings(monthlyData);
+        setRevenueByRoomType(revenueRoomData || []);
       } catch (err) {
         console.error(err);
-        showToast(err.message, "error");
+        showToast(err.message || "Failed to load dashboard data", "error");
       }
     };
 
     loadData();
   }, []);
 
+  // Bookings Per Month - Line Chart
+  const bookingsLineData = {
+    labels: monthlyBookings.map((item) => item.month),
+    datasets: [
+      {
+        label: "Bookings",
+        data: monthlyBookings.map((item) => item.count),
+        borderColor: "#c9a84c",
+        backgroundColor: "rgba(201, 168, 76, 0.2)",
+        tension: 0.4,
+        fill: true,
+      },
+    ],
+  };
+
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "top" },
+      title: { display: true, text: "Bookings Per Month" },
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 } },
+    },
+  };
+
+  // Revenue by Room Type - Pie Chart
+  const pieData = {
+    labels: revenueByRoomType.map((item) => item.roomType || item.room_type),
+    datasets: [
+      {
+        data: revenueByRoomType.map((item) =>
+          Number(item.revenue || item.total_revenue || 0),
+        ),
+        backgroundColor: [
+          "#c9a84c",
+          "#1a1a2e",
+          "#4a90e2",
+          "#e94b3c",
+          "#2ecc71",
+          "#9b59b6",
+          "#f1c40f",
+          "#34495e",
+        ],
+        borderColor: "#fff",
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const pieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "bottom" },
+      title: { display: true, text: "Revenue by Room Type" },
+    },
+  };
+
   return (
     <div className="admin-container">
-      {/* USE THE NEW SHARED SIDEBAR */}
       <AdminSidebar activePage="dashboard" onNavigate={onNavigate} />
 
-      {/* Main Content */}
       <div className="admin-content">
         <div className="admin-quick-nav">
           <div
@@ -167,42 +259,52 @@ function AdminDashboard({ onNavigate, onLogout }) {
           ))}
         </div>
 
-        {/* Charts and Tables... (Keep the rest of your dashboard code here) */}
+        {/* Charts Section */}
         <div className="charts-section">
-          {/* ... (Your Chart Code) ... */}
           <div className="chart-card line-chart-box">
             <h3>Bookings per month</h3>
-            {/* SVG Chart Placeholder */}
-            <div
-              style={{
-                height: "150px",
-                background: "#f9f9f9",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#aaa",
-              }}
-            >
-              Chart Area
+            <div style={{ height: "320px" }}>
+              {monthlyBookings.length > 0 ? (
+                <Line data={bookingsLineData} options={lineOptions} />
+              ) : (
+                <div
+                  style={{
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#aaa",
+                  }}
+                >
+                  Loading bookings chart...
+                </div>
+              )}
             </div>
           </div>
+
           <div className="chart-card pie-chart-box">
-            <h3>Revenue</h3>
-            <div
-              style={{
-                height: "150px",
-                background: "#f9f9f9",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#aaa",
-              }}
-            >
-              Pie Chart Area
+            <h3>Revenue by Room Type</h3>
+            <div style={{ height: "320px" }}>
+              {revenueByRoomType.length > 0 ? (
+                <Pie data={pieData} options={pieOptions} />
+              ) : (
+                <div
+                  style={{
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#aaa",
+                  }}
+                >
+                  Loading revenue distribution...
+                </div>
+              )}
             </div>
           </div>
         </div>
 
+        {/* Recent Bookings Table */}
         <div className="bottom-dashboard-row">
           <div className="dashboard-card table-card">
             <h3>Recent Bookings</h3>
