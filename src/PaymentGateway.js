@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -6,12 +6,13 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import ReCAPTCHA from "react-google-recaptcha";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
 
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
-// ── Inner checkout form ──────────────────────────────────────────────────────
+// ── Checkout Form ────────────────────────────────────────────────────────────
 function CheckoutForm({ onNavigate, bookingData }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -27,7 +28,6 @@ function CheckoutForm({ onNavigate, bookingData }) {
       return;
     }
 
-    // Make sure elements are ready before confirming
     const { error: submitError } = await elements.submit();
     if (submitError) {
       showToast(submitError.message, "error");
@@ -86,22 +86,20 @@ function CheckoutForm({ onNavigate, bookingData }) {
     }
   };
 
-  return (
-    <div className="gateway-layout" style={{ position: "relative" }}>
-      {/* Overlay sits on top but PaymentElement stays mounted in the DOM */}
-      {isProcessing && (
-        <div
-          className="processing-overlay"
-          style={{ position: "absolute", inset: 0, zIndex: 10 }}
-        >
-          <div className="processing-box">
-            <div className="processing-spinner" />
-            <p className="processing-step">{processingStep}</p>
-            <p className="processing-sub">Please do not close this window</p>
-          </div>
+  if (isProcessing) {
+    return (
+      <div className="processing-overlay">
+        <div className="processing-box">
+          <div className="processing-spinner" />
+          <p className="processing-step">{processingStep}</p>
+          <p className="processing-sub">Please do not close this window</p>
         </div>
-      )}
+      </div>
+    );
+  }
 
+  return (
+    <div className="gateway-layout">
       <div className="card-form-section">
         <div className="secure-badge">
           <span>🔒</span>
@@ -109,17 +107,12 @@ function CheckoutForm({ onNavigate, bookingData }) {
         </div>
         <PaymentElement />
         <div className="payment-actions" style={{ marginTop: "24px" }}>
-          <button
-            className="btn-pay"
-            onClick={handlePay}
-            disabled={isProcessing}
-          >
+          <button className="btn-pay" onClick={handlePay}>
             🔒 Pay LKR {amount.toLocaleString()}
           </button>
           <button
             className="btn-cancel-pay"
             onClick={() => onNavigate("payment", bookingData)}
-            disabled={isProcessing}
           >
             ← Back
           </button>
@@ -156,10 +149,62 @@ function CheckoutForm({ onNavigate, bookingData }) {
   );
 }
 
-// ── Main wrapper ─────────────────────────────────────────────────────────────
+// ── CAPTCHA Step ─────────────────────────────────────────────────────────────
+function CaptchaStep({ onVerified }) {
+  const recaptchaRef = useRef(null);
+  const [verified, setVerified] = useState(false);
+
+  const handleChange = (value) => {
+    if (value) setVerified(true);
+  };
+
+  return (
+    <div
+      className="page-container"
+      style={{ textAlign: "center", paddingTop: "60px" }}
+    >
+      <div className="payment-header">
+        <h1>Security Check</h1>
+        <p>Please verify you are human before proceeding to payment</p>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "24px",
+          marginTop: "40px",
+        }}
+      >
+        <ReCAPTCHA
+          ref={recaptchaRef}
+          sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+          onChange={handleChange}
+          onExpired={() => setVerified(false)}
+        />
+
+        <button
+          className="btn-pay"
+          disabled={!verified}
+          onClick={onVerified}
+          style={{
+            opacity: verified ? 1 : 0.5,
+            cursor: verified ? "pointer" : "not-allowed",
+          }}
+        >
+          Continue to Payment →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Wrapper ─────────────────────────────────────────────────────────────
 function PaymentGateway({ onNavigate, room }) {
   const bookingData = room || null;
   const [clientSecret, setClientSecret] = useState("");
+  const [captchaPassed, setCaptchaPassed] = useState(false);
 
   useEffect(() => {
     if (!bookingData?.amount) return;
@@ -192,6 +237,12 @@ function PaymentGateway({ onNavigate, room }) {
     );
   }
 
+  // Step 1: CAPTCHA
+  if (!captchaPassed) {
+    return <CaptchaStep onVerified={() => setCaptchaPassed(true)} />;
+  }
+
+  // Step 2: Payment
   if (!clientSecret) {
     return (
       <div

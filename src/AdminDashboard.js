@@ -101,15 +101,15 @@ function AdminDashboard({ onNavigate, onLogout }) {
     loadData();
   }, []);
 
-  // Line Chart Data
+  // Line Chart (Bookings + Revenue)
   const lineData = {
     labels: monthlyData.map((item) => item.month),
     datasets: [
       {
         label: "Bookings",
         data: monthlyData.map((item) => item.count),
-        borderColor: "#c9a84c",
-        backgroundColor: "rgba(201, 168, 76, 0.1)",
+        borderColor: "#8B5CF6",
+        backgroundColor: "rgba(139, 92, 246, 0.15)",
         tension: 0.4,
         fill: true,
         yAxisID: "y",
@@ -117,8 +117,8 @@ function AdminDashboard({ onNavigate, onLogout }) {
       {
         label: "Revenue (LKR)",
         data: monthlyData.map((item) => item.revenue || 0),
-        borderColor: "#1a1a2e",
-        backgroundColor: "rgba(26, 26, 46, 0.1)",
+        borderColor: "#4C1D95",
+        backgroundColor: "rgba(76, 29, 149, 0.15)",
         tension: 0.4,
         fill: true,
         yAxisID: "y1",
@@ -164,13 +164,12 @@ function AdminDashboard({ onNavigate, onLogout }) {
       {
         data: revenueByRoomType.map((item) => Number(item.revenue || 0)),
         backgroundColor: [
-          "#c9a84c",
-          "#1a1a2e",
-          "#4a90e2",
-          "#e94b3c",
-          "#2ecc71",
-          "#9b59b6",
-          "#f39c12",
+          "#8B5CF6",
+          "#A78BFA",
+          "#C4B5FD",
+          "#6D28D9",
+          "#4C1D95",
+          "#7C3AED",
         ],
         borderColor: "#ffffff",
         borderWidth: 3,
@@ -277,7 +276,7 @@ function AdminDashboard({ onNavigate, onLogout }) {
           />
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats */}
         <div className="stats-grid">
           {stats.map((stat, index) => (
             <div key={index} className="stat-card">
