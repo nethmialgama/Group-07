@@ -1,9 +1,41 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const { authenticate } = require("../middleware/auth");
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-// POST /api/payments/create-intent
+const {
+  buildInvoicePDF,
+  sendInvoiceEmail,
+} = require("../services/invoiceService");
+const {
+  getAdvancePaymentQuote,
+  getRefundQuote,
+  getPolicyTable,
+  roundMoney,
+} = require("../services/paymentPolicy");
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function getReservationById(reservationId) {
+  const [rows] = await pool.query(
+    "SELECT reservationId, guestId, checkIn, total_price FROM Reservation WHERE reservationId = ?",
+    [reservationId],
+  );
+  return rows.length ? rows[0] : null;
+}
+
+function canAccessReservation(req, reservation) {
+  if (req.user.userType !== "guest") return true;
+  return Number(reservation.guestId) === Number(req.user.id);
+}
+
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+// ── POST /api/payments/create-intent ─────────────────────────────────────────
 router.post("/create-intent", authenticate, async (req, res) => {
   const { amount } = req.body;
   if (!amount || amount <= 0) {
@@ -23,44 +55,13 @@ router.post("/create-intent", authenticate, async (req, res) => {
     res.status(500).json({ error: "Failed to create payment intent" });
   }
 });
-const { authenticate } = require("../middleware/auth");
-const {
-  buildInvoicePDF,
-  sendInvoiceEmail,
-} = require("../services/invoiceService");
-const {
-  getAdvancePaymentQuote,
-  getRefundQuote,
-  getPolicyTable,
-  roundMoney,
-} = require("../services/paymentPolicy");
 
-async function getReservationById(reservationId) {
-  const [rows] = await pool.query(
-    "SELECT reservationId, guestId, checkIn, total_price FROM Reservation WHERE reservationId = ?",
-    [reservationId],
-  );
-  return rows.length ? rows[0] : null;
-}
-
-function canAccessReservation(req, reservation) {
-  if (req.user.userType !== "guest") {
-    return true;
-  }
-  return Number(reservation.guestId) === Number(req.user.id);
-}
-
-function toNumber(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-// GET /api/payments/policy-rules
+// ── GET /api/payments/policy-rules ───────────────────────────────────────────
 router.get("/policy-rules", (req, res) => {
   res.json(getPolicyTable());
 });
 
-// GET /api/payments/policy/:reservationId
+// ── GET /api/payments/policy/:reservationId ──────────────────────────────────
 router.get("/policy/:reservationId", authenticate, async (req, res) => {
   try {
     const reservation = await getReservationById(req.params.reservationId);
@@ -79,7 +80,6 @@ router.get("/policy/:reservationId", authenticate, async (req, res) => {
       [reservation.reservationId],
     );
     const paidAmount = Number(paymentRows[0]?.amount || 0);
-
     const totalPrice = Number(reservation.total_price || 0);
     const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
     const refund = getRefundQuote(paidAmount, reservation.checkIn);
@@ -107,7 +107,7 @@ router.get("/policy/:reservationId", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/payments/refund-quote/:reservationId?cancellationDate=YYYY-MM-DD
+// ── GET /api/payments/refund-quote/:reservationId ────────────────────────────
 router.get("/refund-quote/:reservationId", authenticate, async (req, res) => {
   try {
     const reservation = await getReservationById(req.params.reservationId);
@@ -126,7 +126,6 @@ router.get("/refund-quote/:reservationId", authenticate, async (req, res) => {
       [reservation.reservationId],
     );
     const paidAmount = Number(paymentRows[0]?.amount || 0);
-
     const cancellationDate = req.query.cancellationDate || new Date();
     const quote = getRefundQuote(
       paidAmount,
@@ -150,7 +149,7 @@ router.get("/refund-quote/:reservationId", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/payments - create a payment record
+// ── POST /api/payments ───────────────────────────────────────────────────────
 router.post("/", authenticate, async (req, res) => {
   const { reservationId, amount, payment_method, status } = req.body;
   if (!reservationId || amount == null || !payment_method) {
@@ -197,7 +196,6 @@ router.post("/", authenticate, async (req, res) => {
       ],
     );
 
-    // Optionally update reservation status if payment completed
     if ((status || "Completed") === "Completed") {
       const nextReservationStatus =
         numericAmount >= totalPrice ? "Confirmed" : "Pending";
@@ -225,13 +223,12 @@ router.post("/", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/payments/send-invoice
+// ── POST /api/payments/send-invoice ──────────────────────────────────────────
 router.post("/send-invoice", authenticate, async (req, res) => {
   const { paymentId } = req.body;
   if (!paymentId) return res.status(400).json({ error: "paymentId required" });
 
   try {
-    // Load payment + reservation + guest from DB
     const [rows] = await pool.query(
       `SELECT p.paymentId, p.amount, p.payment_method,
               r.reservationId, r.checkIn, r.checkOut, r.total_price,
@@ -249,7 +246,6 @@ router.post("/send-invoice", authenticate, async (req, res) => {
       return res.status(404).json({ error: "Payment not found" });
     const row = rows[0];
 
-    // Build invoice object (matches what the frontend passes too)
     const invoice = {
       paymentId: row.paymentId,
       paidAmount: Number(row.amount),
@@ -275,7 +271,7 @@ router.post("/send-invoice", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/payments/invoice-pdf/:paymentId
+// ── GET /api/payments/invoice-pdf/:paymentId ─────────────────────────────────
 router.get("/invoice-pdf/:paymentId", authenticate, async (req, res) => {
   try {
     const [rows] = await pool.query(

@@ -22,7 +22,17 @@ function CheckoutForm({ onNavigate, bookingData }) {
   const billing = bookingData?.billing || {};
 
   const handlePay = async () => {
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      showToast("Payment not ready. Please wait.", "error");
+      return;
+    }
+
+    // Make sure elements are ready before confirming
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      showToast(submitError.message, "error");
+      return;
+    }
 
     setIsProcessing(true);
     setProcessingStep("Verifying card details...");
