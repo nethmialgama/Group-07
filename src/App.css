@@ -4721,22 +4721,30 @@ body,
 /* ================ MODERN PURPLE ADMIN DASHBOARD THEME ================ */
 
 :root {
-  --primary: #8B5CF6;
-  --secondary: #A78BFA;
-  --soft: #C4B5FD;
-  --light: #DDD6FE;
-  --background: #EDE9FE;
-  --text-dark: #1F2937;
-  --hover: #7C3AED;
+  --primary: #8b5cf6;
+  --secondary: #a78bfa;
+  --soft: #c4b5fd;
+  --light: #ddd6fe;
+  --background: #ede9fe;
+  --text-dark: #1f2937;
+  --hover: #7c3aed;
 }
 
 /* Cool Modern Fonts */
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
-h1, h2, h3, .admin-header-row h2 {
-  font-family: 'Poppins', sans-serif;
+h1,
+h2,
+h3,
+.admin-header-row h2 {
+  font-family: "Poppins", sans-serif;
   font-weight: 600;
   letter-spacing: -0.4px;
 }
@@ -4759,12 +4767,12 @@ h1, h2, h3, .admin-header-row h2 {
   border-radius: 16px;
   box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15);
   color: #000000;
-  border: 1px solid #C4B5FD;
+  border: 1px solid #c4b5fd;
 }
 
 /* Sidebar */
 .admin-sidebar {
-  background: linear-gradient(180deg, #6D28D9 0%, #7C3AED 100%);
+  background: linear-gradient(180deg, #6d28d9 0%, #7c3aed 100%);
   color: white;
 }
 
@@ -4776,7 +4784,7 @@ h1, h2, h3, .admin-header-row h2 {
 .btn-blue,
 .btn-primary {
   background: var(--primary);
-  color: #FFFFFF;
+  color: #ffffff;
   border: none;
   border-radius: 10px;
   padding: 11px 22px;
@@ -4792,7 +4800,7 @@ h1, h2, h3, .admin-header-row h2 {
 }
 
 .btn-red {
-  background: #EF4444;
+  background: #ef4444;
   color: white;
 }
 
@@ -4812,7 +4820,7 @@ h1, h2, h3, .admin-header-row h2 {
 }
 
 .chart-card h3 {
-  color: #1F2937;
+  color: #1f2937;
   margin-bottom: 20px;
 }
 
@@ -4823,7 +4831,7 @@ h1, h2, h3, .admin-header-row h2 {
 }
 
 .chart-empty {
-  color: #6B7280;
+  color: #6b7280;
 }
 
 /* Stats Grid */
@@ -4854,11 +4862,12 @@ h1, h2, h3, .admin-header-row h2 {
 /* Tables */
 .mini-table th {
   background: var(--light);
-  color: #1F2937;
+  color: #1f2937;
 }
 
 /* Hover Effects */
-li:hover, .btn-blue:hover {
+li:hover,
+.btn-blue:hover {
   transition: all 0.3s;
 }
 
@@ -4867,4 +4876,45 @@ li:hover, .btn-blue:hover {
   .charts-section {
     grid-template-columns: 1fr;
   }
+}
+
+/* Sidebar Icons */
+.menu-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  margin-right: 12px;
+  filter: brightness(0) invert(1); /* Makes icons white on purple background */
+}
+
+.admin-menu li {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  margin: 6px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.admin-menu li:hover,
+.admin-menu li.active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(4px);
+}
+
+.stat-image {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.stat-icon-box {
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 92, 246, 0.15);
+  border-radius: 14px;
 }

@@ -64,17 +64,25 @@ function AdminDashboard({ onNavigate, onLogout }) {
         const revenueRoomData = await revenueRoomRes.json();
 
         setStats([
-          { title: "Rooms", value: String(statsData.rooms || 0), icon: "🛏️" },
+          {
+            title: "Rooms",
+            value: String(statsData.rooms || 0),
+            icon: "/images/rooms.png",
+          },
           {
             title: "Bookings",
             value: String(statsData.bookings || 0),
-            icon: "📅",
+            icon: "/images/bookings.png",
           },
-          { title: "Users", value: String(statsData.users || 0), icon: "👤" },
+          {
+            title: "Users",
+            value: String(statsData.users || 0),
+            icon: "/images/users.png",
+          },
           {
             title: "Revenue",
             value: `LKR ${Number(statsData.revenue || 0).toLocaleString()}`,
-            icon: "💰",
+            icon: "/images/revenue.png",
           },
         ]);
 
@@ -101,7 +109,7 @@ function AdminDashboard({ onNavigate, onLogout }) {
     loadData();
   }, []);
 
-  // Line Chart (Bookings + Revenue)
+  // Charts Data (same as before)
   const lineData = {
     labels: monthlyData.map((item) => item.month),
     datasets: [
@@ -152,7 +160,6 @@ function AdminDashboard({ onNavigate, onLogout }) {
     },
   };
 
-  // Pie Chart
   const totalRevenue = revenueByRoomType.reduce(
     (sum, item) => sum + Number(item.revenue || 0),
     0,
@@ -169,7 +176,6 @@ function AdminDashboard({ onNavigate, onLogout }) {
           "#C4B5FD",
           "#6D28D9",
           "#4C1D95",
-          "#7C3AED",
         ],
         borderColor: "#ffffff",
         borderWidth: 3,
@@ -276,11 +282,13 @@ function AdminDashboard({ onNavigate, onLogout }) {
           />
         </div>
 
-        {/* Stats */}
+        {/* Stats Grid with Images */}
         <div className="stats-grid">
           {stats.map((stat, index) => (
             <div key={index} className="stat-card">
-              <div className="stat-icon-box">{stat.icon}</div>
+              <div className="stat-icon-box">
+                <img src={stat.icon} alt={stat.title} className="stat-image" />
+              </div>
               <div className="stat-info">
                 <p>{stat.title}</p>
                 <h3>{stat.value}</h3>
