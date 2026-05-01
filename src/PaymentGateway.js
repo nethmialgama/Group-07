@@ -86,20 +86,22 @@ function CheckoutForm({ onNavigate, bookingData }) {
     }
   };
 
-  if (isProcessing) {
-    return (
-      <div className="processing-overlay">
-        <div className="processing-box">
-          <div className="processing-spinner" />
-          <p className="processing-step">{processingStep}</p>
-          <p className="processing-sub">Please do not close this window</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="gateway-layout">
+    <div className="gateway-layout" style={{ position: "relative" }}>
+      {/* Overlay sits on top but PaymentElement stays mounted in the DOM */}
+      {isProcessing && (
+        <div
+          className="processing-overlay"
+          style={{ position: "absolute", inset: 0, zIndex: 10 }}
+        >
+          <div className="processing-box">
+            <div className="processing-spinner" />
+            <p className="processing-step">{processingStep}</p>
+            <p className="processing-sub">Please do not close this window</p>
+          </div>
+        </div>
+      )}
+
       <div className="card-form-section">
         <div className="secure-badge">
           <span>🔒</span>
@@ -107,12 +109,17 @@ function CheckoutForm({ onNavigate, bookingData }) {
         </div>
         <PaymentElement />
         <div className="payment-actions" style={{ marginTop: "24px" }}>
-          <button className="btn-pay" onClick={handlePay}>
+          <button
+            className="btn-pay"
+            onClick={handlePay}
+            disabled={isProcessing}
+          >
             🔒 Pay LKR {amount.toLocaleString()}
           </button>
           <button
             className="btn-cancel-pay"
             onClick={() => onNavigate("payment", bookingData)}
+            disabled={isProcessing}
           >
             ← Back
           </button>

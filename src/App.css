@@ -4588,3 +4588,7 @@ body,
   color: #888;
   font-size: 15px;
 }
+
+#stripe-shadow-host-test {
+  display: none !important;
+}

@@ -5,7 +5,6 @@ import AccountAvatarMenu from "./AccountAvatarMenu";
 import { getAuthHeaders } from "./auth";
 import { showToast } from "./toast";
 
-// Import Chart.js components
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -33,21 +32,16 @@ ChartJS.register(
 );
 
 function AdminDashboard({ onNavigate, onLogout }) {
-  const [stats, setStats] = useState([
-    { title: "Rooms", value: "0", icon: "🛏️" },
-    { title: "Bookings", value: "0", icon: "📅" },
-    { title: "Users", value: "0", icon: "👤" },
-    { title: "Revenue", value: "LKR 0", icon: "💰" },
-  ]);
-
+  const [stats, setStats] = useState([]);
   const [recentBookings, setRecentBookings] = useState([]);
-  const [monthlyBookings, setMonthlyBookings] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
   const [revenueByRoomType, setRevenueByRoomType] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load all dashboard data
   useEffect(() => {
     const loadData = async () => {
       try {
+        setLoading(true);
         const [statsRes, bookingsRes, monthlyRes, revenueRoomRes] =
           await Promise.all([
             fetch("http://localhost:5000/api/admin/stats", {
@@ -66,10 +60,9 @@ function AdminDashboard({ onNavigate, onLogout }) {
 
         const statsData = await statsRes.json();
         const bookingsData = await bookingsRes.json();
-        const monthlyData = await monthlyRes.json();
+        const monthlyDataRes = await monthlyRes.json();
         const revenueRoomData = await revenueRoomRes.json();
 
-        // Update stats
         setStats([
           { title: "Rooms", value: String(statsData.rooms || 0), icon: "🛏️" },
           {
@@ -95,28 +88,40 @@ function AdminDashboard({ onNavigate, onLogout }) {
           })),
         );
 
-        setMonthlyBookings(monthlyData);
-        setRevenueByRoomType(revenueRoomData || []);
+        setMonthlyData(monthlyDataRes);
+        setRevenueByRoomType(revenueRoomData);
       } catch (err) {
         console.error(err);
-        showToast(err.message || "Failed to load dashboard data", "error");
+        showToast("Failed to load dashboard data", "error");
+      } finally {
+        setLoading(false);
       }
     };
 
     loadData();
   }, []);
 
-  // Bookings Per Month - Line Chart
-  const bookingsLineData = {
-    labels: monthlyBookings.map((item) => item.month),
+  // Line Chart Data
+  const lineData = {
+    labels: monthlyData.map((item) => item.month),
     datasets: [
       {
         label: "Bookings",
-        data: monthlyBookings.map((item) => item.count),
+        data: monthlyData.map((item) => item.count),
         borderColor: "#c9a84c",
-        backgroundColor: "rgba(201, 168, 76, 0.2)",
+        backgroundColor: "rgba(201, 168, 76, 0.1)",
         tension: 0.4,
         fill: true,
+        yAxisID: "y",
+      },
+      {
+        label: "Revenue (LKR)",
+        data: monthlyData.map((item) => item.revenue || 0),
+        borderColor: "#1a1a2e",
+        backgroundColor: "rgba(26, 26, 46, 0.1)",
+        tension: 0.4,
+        fill: true,
+        yAxisID: "y1",
       },
     ],
   };
@@ -126,21 +131,38 @@ function AdminDashboard({ onNavigate, onLogout }) {
     maintainAspectRatio: false,
     plugins: {
       legend: { position: "top" },
-      title: { display: true, text: "Bookings Per Month" },
+      title: {
+        display: true,
+        text: "Bookings & Revenue Trend",
+        font: { size: 16 },
+      },
     },
     scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1 } },
+      y: {
+        type: "linear",
+        position: "left",
+        title: { display: true, text: "Bookings" },
+      },
+      y1: {
+        type: "linear",
+        position: "right",
+        grid: { drawOnChartArea: false },
+        title: { display: true, text: "Revenue (LKR)" },
+      },
     },
   };
 
-  // Revenue by Room Type - Pie Chart
+  // Pie Chart
+  const totalRevenue = revenueByRoomType.reduce(
+    (sum, item) => sum + Number(item.revenue || 0),
+    0,
+  );
+
   const pieData = {
-    labels: revenueByRoomType.map((item) => item.roomType || item.room_type),
+    labels: revenueByRoomType.map((item) => item.roomType),
     datasets: [
       {
-        data: revenueByRoomType.map((item) =>
-          Number(item.revenue || item.total_revenue || 0),
-        ),
+        data: revenueByRoomType.map((item) => Number(item.revenue || 0)),
         backgroundColor: [
           "#c9a84c",
           "#1a1a2e",
@@ -148,11 +170,10 @@ function AdminDashboard({ onNavigate, onLogout }) {
           "#e94b3c",
           "#2ecc71",
           "#9b59b6",
-          "#f1c40f",
-          "#34495e",
+          "#f39c12",
         ],
-        borderColor: "#fff",
-        borderWidth: 2,
+        borderColor: "#ffffff",
+        borderWidth: 3,
       },
     ],
   };
@@ -161,8 +182,26 @@ function AdminDashboard({ onNavigate, onLogout }) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: "bottom" },
-      title: { display: true, text: "Revenue by Room Type" },
+      legend: {
+        position: "bottom",
+        labels: { padding: 20, usePointStyle: true },
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const value = context.raw;
+            const percentage = totalRevenue
+              ? ((value / totalRevenue) * 100).toFixed(1)
+              : 0;
+            return ` LKR ${value.toLocaleString()} (${percentage}%)`;
+          },
+        },
+      },
+      title: {
+        display: true,
+        text: `Revenue by Room Type (Total: LKR ${totalRevenue.toLocaleString()})`,
+        font: { size: 16 },
+      },
     },
   };
 
@@ -172,15 +211,7 @@ function AdminDashboard({ onNavigate, onLogout }) {
 
       <div className="admin-content">
         <div className="admin-quick-nav">
-          <div
-            className="admin-quick-brand"
-            onClick={() => onNavigate("home")}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") onNavigate("home");
-            }}
-          >
+          <div className="admin-quick-brand" onClick={() => onNavigate("home")}>
             <img
               className="brand-logo-img"
               src="/images/logo.png"
@@ -259,24 +290,18 @@ function AdminDashboard({ onNavigate, onLogout }) {
           ))}
         </div>
 
-        {/* Charts Section */}
+        {/* Charts */}
         <div className="charts-section">
           <div className="chart-card line-chart-box">
-            <h3>Bookings per month</h3>
-            <div style={{ height: "320px" }}>
-              {monthlyBookings.length > 0 ? (
-                <Line data={bookingsLineData} options={lineOptions} />
+            <h3>Bookings & Revenue Trend</h3>
+            <div style={{ height: "360px" }}>
+              {loading ? (
+                <div className="chart-loading">Loading trend data...</div>
+              ) : monthlyData.length > 0 ? (
+                <Line data={lineData} options={lineOptions} />
               ) : (
-                <div
-                  style={{
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#aaa",
-                  }}
-                >
-                  Loading bookings chart...
+                <div className="chart-empty">
+                  No monthly data available yet.
                 </div>
               )}
             </div>
@@ -284,34 +309,30 @@ function AdminDashboard({ onNavigate, onLogout }) {
 
           <div className="chart-card pie-chart-box">
             <h3>Revenue by Room Type</h3>
-            <div style={{ height: "320px" }}>
-              {revenueByRoomType.length > 0 ? (
+            <div style={{ height: "360px" }}>
+              {loading ? (
+                <div className="chart-loading">
+                  Loading revenue distribution...
+                </div>
+              ) : revenueByRoomType.length > 0 ? (
                 <Pie data={pieData} options={pieOptions} />
               ) : (
-                <div
-                  style={{
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#aaa",
-                  }}
-                >
-                  Loading revenue distribution...
+                <div className="chart-empty">
+                  No revenue data available yet.
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Recent Bookings Table */}
+        {/* Recent Bookings */}
         <div className="bottom-dashboard-row">
           <div className="dashboard-card table-card">
             <h3>Recent Bookings</h3>
             <table className="mini-table">
               <thead>
                 <tr>
-                  <th>id</th>
+                  <th>ID</th>
                   <th>Guest</th>
                   <th>Room</th>
                   <th>Check-in</th>
