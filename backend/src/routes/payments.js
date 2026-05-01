@@ -1,6 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const Stripe = require("stripe");
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+// POST /api/payments/create-intent
+router.post("/create-intent", authenticate, async (req, res) => {
+  const { amount } = req.body;
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: "Invalid amount" });
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Stripe uses cents
+      currency: "lkr",
+      automatic_payment_methods: { enabled: true },
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create payment intent" });
+  }
+});
 const { authenticate } = require("../middleware/auth");
 const {
   buildInvoicePDF,
