@@ -23,10 +23,9 @@ function StatusBadge({ status }) {
         background: s.bg,
         color: s.color,
         borderRadius: "20px",
-        padding: "3px 12px",
-        fontSize: "12px",
+        padding: "4px 14px",
+        fontSize: "13px",
         fontWeight: 600,
-        letterSpacing: "0.3px",
       }}
     >
       {s.label}
@@ -41,7 +40,7 @@ function Dashboard({ onNavigate, onLogout }) {
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "history"
+  const [activeTab, setActiveTab] = useState("upcoming");
 
   useEffect(() => {
     fetchBookings();
@@ -69,10 +68,13 @@ function Dashboard({ onNavigate, onLogout }) {
     try {
       const res = await fetch(
         `http://localhost:5000/api/reservations/${reservationId}/cancel`,
-        { method: "PUT", headers: getAuthHeaders() },
+        {
+          method: "PUT",
+          headers: getAuthHeaders(),
+        },
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to cancel booking");
+      if (!res.ok) throw new Error(data.error || "Failed to cancel");
       showToast("Booking cancelled successfully.", "success");
       fetchBookings();
     } catch (err) {
@@ -107,51 +109,69 @@ function Dashboard({ onNavigate, onLogout }) {
 
   return (
     <div className="page-container dashboard-container">
-      {/* LEFT SIDEBAR */}
+      {/* Sidebar */}
       <div className="dashboard-sidebar">
         <button className="sidebar-btn" onClick={() => onNavigate("home")}>
-          🏨 Hotel Details
+          <img src="/images/hotel.png" alt="" className="sidebar-icon" /> Hotel
+          Details
         </button>
         <button className="sidebar-btn" onClick={() => onNavigate("rooms")}>
-          🛏️ Browse Rooms
+          <img src="/images/rooms.png" alt="" className="sidebar-icon" /> Browse
+          Rooms
         </button>
-        <button className="sidebar-btn active">📋 My Bookings</button>
+        <button className="sidebar-btn active">
+          <img src="/images/calander.png" alt="" className="sidebar-icon" /> My
+          Bookings
+        </button>
         <button
           className="sidebar-btn"
           onClick={() => onNavigate("profile-settings")}
         >
-          ⚙️ Profile Settings
+          <img src="/images/settings.png" alt="" className="sidebar-icon" />{" "}
+          Profile Settings
         </button>
         <button className="sidebar-btn sidebar-btn-logout" onClick={onLogout}>
           🚪 Logout
         </button>
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* Main Content */}
       <div className="dashboard-content">
         <div className="welcome-header">
           <h1>Welcome back, {displayName} 👋</h1>
           <p>Manage your reservations and booking history</p>
         </div>
 
-        {/* STATS ROW */}
+        {/* Stats Row with Images */}
         <div className="dashboard-stats-row">
           <div className="dash-stat-card">
-            <span className="dash-stat-icon">📅</span>
+            <img
+              src="/images/calander.png"
+              alt="Upcoming"
+              className="dash-stat-icon-img"
+            />
             <div>
               <div className="dash-stat-value">{upcomingBookings.length}</div>
               <div className="dash-stat-label">Upcoming</div>
             </div>
           </div>
           <div className="dash-stat-card">
-            <span className="dash-stat-icon">🕐</span>
+            <img
+              src="/images/clock.png"
+              alt="Total"
+              className="dash-stat-icon-img"
+            />
             <div>
               <div className="dash-stat-value">{bookings.length}</div>
               <div className="dash-stat-label">Total Bookings</div>
             </div>
           </div>
           <div className="dash-stat-card">
-            <span className="dash-stat-icon">✅</span>
+            <img
+              src="/images/completed.png"
+              alt="Completed"
+              className="dash-stat-icon-img"
+            />
             <div>
               <div className="dash-stat-value">
                 {bookings.filter((b) => b.status === "Checked-Out").length}
@@ -160,7 +180,11 @@ function Dashboard({ onNavigate, onLogout }) {
             </div>
           </div>
           <div className="dash-stat-card">
-            <span className="dash-stat-icon">❌</span>
+            <img
+              src="/images/cancelled.png"
+              alt="Cancelled"
+              className="dash-stat-icon-img"
+            />
             <div>
               <div className="dash-stat-value">
                 {bookings.filter((b) => b.status === "Cancelled").length}
@@ -170,13 +194,13 @@ function Dashboard({ onNavigate, onLogout }) {
           </div>
         </div>
 
-        {/* TABS */}
+        {/* Tabs */}
         <div className="dashboard-tabs">
           <button
             className={`dash-tab ${activeTab === "upcoming" ? "active" : ""}`}
             onClick={() => setActiveTab("upcoming")}
           >
-            Upcoming Bookings
+            Upcoming Bookings{" "}
             {upcomingBookings.length > 0 && (
               <span className="tab-badge">{upcomingBookings.length}</span>
             )}
@@ -189,30 +213,15 @@ function Dashboard({ onNavigate, onLogout }) {
           </button>
         </div>
 
-        {/* BOOKING LIST */}
+        {/* Bookings List */}
         {loading ? (
-          <div className="dashboard-loading">
-            <div className="loading-spinner" />
-            <p>Loading your bookings...</p>
-          </div>
+          <div className="dashboard-loading">Loading your bookings...</div>
         ) : displayedBookings.length === 0 ? (
           <div className="dashboard-empty">
-            <div className="empty-icon">🛏️</div>
-            <h3>
-              {activeTab === "upcoming"
-                ? "No upcoming bookings"
-                : "No booking history yet"}
-            </h3>
-            <p>
-              {activeTab === "upcoming"
-                ? "Ready for your next stay? Browse our rooms!"
-                : "Your completed and cancelled bookings will appear here."}
-            </p>
-            {activeTab === "upcoming" && (
-              <button className="btn-fill" onClick={() => onNavigate("rooms")}>
-                Browse Rooms
-              </button>
-            )}
+            <h3>No {activeTab} bookings found</h3>
+            <button className="btn-blue" onClick={() => onNavigate("rooms")}>
+              Browse Rooms
+            </button>
           </div>
         ) : (
           <div className="booking-cards-list">
@@ -221,7 +230,7 @@ function Dashboard({ onNavigate, onLogout }) {
               const checkOut = new Date(booking.checkOut);
               const nights = Math.max(
                 1,
-                Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)),
+                Math.ceil((checkOut - checkIn) / 86400000),
               );
 
               return (
@@ -231,7 +240,6 @@ function Dashboard({ onNavigate, onLogout }) {
                     <div className="booking-room-number">
                       Room {booking.roomNumber}
                     </div>
-
                     <div className="booking-dates-row">
                       <div className="booking-date-block">
                         <label>Check-in</label>
@@ -255,7 +263,6 @@ function Dashboard({ onNavigate, onLogout }) {
                         </span>
                       </div>
                     </div>
-
                     <div className="booking-meta-row">
                       <span className="booking-nights">
                         🌙 {nights} night{nights > 1 ? "s" : ""}
@@ -269,13 +276,11 @@ function Dashboard({ onNavigate, onLogout }) {
                       <div className="booking-price">
                         LKR {Number(booking.total_price || 0).toLocaleString()}
                       </div>
-                      <div className="booking-price-label">Total Amount</div>
+                      <div className="booking-price-label">Total</div>
                     </div>
-
                     <div className="booking-id-label">
                       #{booking.reservationId}
                     </div>
-
                     {canCancel(booking) && (
                       <button
                         className="btn-cancel-booking"
