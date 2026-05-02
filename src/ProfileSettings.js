@@ -20,6 +20,7 @@ function ProfileSettings({ onNavigate, onLogout }) {
     newPassword: "",
     confirmPassword: "",
   });
+
   const role = getStoredAuth().role || "Guest";
   const avatarSrc =
     role === "Admin" ? "/images/profile1.png" : "/images/profile2.png";
@@ -28,15 +29,12 @@ function ProfileSettings({ onNavigate, onLogout }) {
     const loadProfile = async () => {
       try {
         const response = await fetch("http://localhost:5000/api/auth/profile", {
-          headers: {
-            ...getAuthHeaders(),
-          },
+          headers: { ...getAuthHeaders() },
         });
 
         const data = await response.json();
-        if (!response.ok) {
+        if (!response.ok)
           throw new Error(data.error || "Failed to load profile");
-        }
 
         setProfile({
           name: data.name || "",
@@ -60,10 +58,7 @@ function ProfileSettings({ onNavigate, onLogout }) {
     try {
       const response = await fetch("http://localhost:5000/api/auth/profile", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           email: profile.email,
           phone: profile.phone,
@@ -73,13 +68,11 @@ function ProfileSettings({ onNavigate, onLogout }) {
       });
 
       const data = await response.json();
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(data.error || "Failed to update profile");
-      }
 
       showToast("Profile updated successfully", "success");
     } catch (err) {
-      console.error(err);
       showToast(err.message, "error");
     } finally {
       setSaving(false);
@@ -88,24 +81,18 @@ function ProfileSettings({ onNavigate, onLogout }) {
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-
     if (
       !passwordForm.currentPassword ||
       !passwordForm.newPassword ||
       !passwordForm.confirmPassword
     ) {
-      showToast("Please fill all password fields", "warning");
-      return;
+      return showToast("Please fill all password fields", "warning");
     }
-
     if (passwordForm.newPassword.length < 8) {
-      showToast("New password must be at least 8 characters", "warning");
-      return;
+      return showToast("New password must be at least 8 characters", "warning");
     }
-
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast("New password and confirm password do not match", "warning");
-      return;
+      return showToast("Passwords do not match", "warning");
     }
 
     setChangingPassword(true);
@@ -114,10 +101,7 @@ function ProfileSettings({ onNavigate, onLogout }) {
         "http://localhost:5000/api/auth/change-password",
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           body: JSON.stringify({
             currentPassword: passwordForm.currentPassword,
             newPassword: passwordForm.newPassword,
@@ -126,9 +110,8 @@ function ProfileSettings({ onNavigate, onLogout }) {
       );
 
       const data = await response.json();
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(data.error || "Failed to change password");
-      }
 
       showToast("Password updated successfully", "success");
       setPasswordForm({
@@ -137,7 +120,6 @@ function ProfileSettings({ onNavigate, onLogout }) {
         confirmPassword: "",
       });
     } catch (err) {
-      console.error(err);
       showToast(err.message, "error");
     } finally {
       setChangingPassword(false);
@@ -149,32 +131,28 @@ function ProfileSettings({ onNavigate, onLogout }) {
     try {
       const response = await fetch("http://localhost:5000/api/auth/account", {
         method: "DELETE",
-        headers: {
-          ...getAuthHeaders(),
-        },
+        headers: getAuthHeaders(),
       });
 
       const data = await response.json();
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(data.error || "Failed to delete account");
-      }
 
       showToast("Account deleted successfully", "success");
-      setShowDeleteConfirm(false);
       onLogout();
       onNavigate("home");
     } catch (err) {
-      console.error(err);
       showToast(err.message, "error");
     } finally {
       setDeletingAccount(false);
+      setShowDeleteConfirm(false);
     }
   };
 
   return (
     <div
       className="page-container"
-      style={{ background: "#f8f9fa", minHeight: "100vh" }}
+      style={{ background: "#EDE9FE", minHeight: "100vh" }}
     >
       <div className="settings-header">
         <h1>Profile Settings</h1>
@@ -182,9 +160,8 @@ function ProfileSettings({ onNavigate, onLogout }) {
       </div>
 
       <div className="settings-grid-layout">
-        {/* LEFT COLUMN (WIDER) */}
+        {/* Left Column */}
         <div className="settings-left-col">
-          {/* Card 1: Profile Header */}
           <div className="settings-card profile-header-card">
             <div className="avatar-circle-large">
               <img src={avatarSrc} alt="Profile" />
@@ -195,7 +172,6 @@ function ProfileSettings({ onNavigate, onLogout }) {
             </div>
           </div>
 
-          {/* Card 2: Personal Information */}
           <div className="settings-card">
             <h3>Personal Information</h3>
             <form className="settings-form" onSubmit={handleSave}>
@@ -224,9 +200,9 @@ function ProfileSettings({ onNavigate, onLogout }) {
                 />
               </div>
               <div className="form-group-row">
-                <label>Date Of Birth</label>
+                <label>Date of Birth</label>
                 <input
-                  type="text"
+                  type="date"
                   value={profile.dob}
                   onChange={(e) =>
                     setProfile((prev) => ({ ...prev, dob: e.target.value }))
@@ -253,9 +229,8 @@ function ProfileSettings({ onNavigate, onLogout }) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN (NARROWER) */}
+        {/* Right Column */}
         <div className="settings-right-col">
-          {/* Card 3: Change Password */}
           <div className="settings-card">
             <h3>Change Password</h3>
             <form
@@ -286,7 +261,7 @@ function ProfileSettings({ onNavigate, onLogout }) {
                 }
               />
 
-              <label>Confirm Password</label>
+              <label>Confirm New Password</label>
               <input
                 type="password"
                 value={passwordForm.confirmPassword}
@@ -321,35 +296,29 @@ function ProfileSettings({ onNavigate, onLogout }) {
         </div>
       </div>
 
-      {showDeleteConfirm ? (
+      {showDeleteConfirm && (
         <div className="account-delete-modal-overlay">
           <div className="account-delete-modal-content">
             <h3>Delete Account</h3>
-            <p>
-              Are you sure you want to delete your account? This action cannot
-              be undone.
-            </p>
+            <p>Are you sure? This action cannot be undone.</p>
             <div className="account-delete-modal-actions">
               <button
                 className="btn-outline"
-                type="button"
-                disabled={deletingAccount}
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 Cancel
               </button>
               <button
                 className="btn-red"
-                type="button"
-                disabled={deletingAccount}
                 onClick={handleDeleteAccount}
+                disabled={deletingAccount}
               >
-                {deletingAccount ? "Deleting..." : "Yes, Delete Account"}
+                {deletingAccount ? "Deleting..." : "Yes, Delete"}
               </button>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
