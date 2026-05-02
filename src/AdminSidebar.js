@@ -14,7 +14,7 @@ function AdminSidebar({ activePage, onNavigate }) {
           onClick={() => onNavigate("admin-dashboard")}
         >
           <img
-            src="/images/revenue.png"
+            src="/images/dashboard.png"
             alt="Dashboard"
             className="menu-icon"
           />
@@ -44,7 +44,7 @@ function AdminSidebar({ activePage, onNavigate }) {
           className={activePage === "refunds" ? "active" : ""}
           onClick={() => onNavigate("admin-refunds")}
         >
-          <img src="/images/bookings.png" alt="Refunds" className="menu-icon" />
+          <img src="/images/refunds.png" alt="Refunds" className="menu-icon" />
           Refund Management
         </li>
       </ul>
