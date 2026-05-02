@@ -4918,3 +4918,158 @@ li:hover,
   background: rgba(139, 92, 246, 0.15);
   border-radius: 14px;
 }
+
+/* ================ MODERN PURPLE THEME ================ */
+
+:root {
+  --primary: #8b5cf6;
+  --secondary: #a78bfa;
+  --soft: #c4b5fd;
+  --light: #ddd6fe;
+  --background: #ede9fe;
+  --text: #1f2937;
+  --hover: #7c3aed;
+}
+
+/* Fonts */
+body {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+h1,
+h2,
+h3,
+.admin-header-row h2,
+.welcome-header h1 {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+/* Main Backgrounds */
+.page-container,
+.admin-content,
+.dashboard-container {
+  background: var(--background);
+  color: var(--text);
+}
+
+/* Navbar */
+.navbar {
+  background: white;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+  padding: 15px 40px;
+}
+
+/* Sidebar (Admin) */
+.admin-sidebar {
+  background: linear-gradient(180deg, #6d28d9, #7c3aed);
+  color: white;
+}
+
+.admin-menu li {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  margin: 6px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.admin-menu li:hover,
+.admin-menu li.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Cards */
+.stat-card,
+.chart-card,
+.dashboard-card,
+.settings-card,
+.booking-card-item {
+  background: var(--soft);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.12);
+  color: #000000;
+}
+
+/* Buttons */
+.btn-blue,
+.btn-primary,
+.search-btn,
+.register-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn-blue:hover,
+.btn-primary:hover {
+  background: var(--hover);
+  transform: translateY(-2px);
+}
+
+/* Stats Icons */
+.stat-image,
+.dash-stat-icon-img,
+.sidebar-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.dash-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+/* Profile */
+.avatar-circle-large {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Charts */
+.charts-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .charts-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Extra polish */
+.settings-header h1 {
+  color: var(--primary);
+}
+
+.dashboard-tabs .dash-tab.active {
+  background: var(--primary);
+  color: white;
+}

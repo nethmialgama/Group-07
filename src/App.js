@@ -41,7 +41,6 @@ const getRoomImage = (roomType = "", idx = 0) => {
     const singleImages = ["/images/single1.png", "/images/single2.png"];
     return singleImages[idx % singleImages.length];
   }
-
   if (normalized.includes("double")) {
     const doubleImages = [
       "/images/double1.png",
@@ -50,12 +49,10 @@ const getRoomImage = (roomType = "", idx = 0) => {
     ];
     return doubleImages[idx % doubleImages.length];
   }
-
   if (normalized.includes("trible") || normalized.includes("triple")) {
     const tribleImages = ["/images/trible1.png", "/images/trible2.png"];
     return tribleImages[idx % tribleImages.length];
   }
-
   return "/images/single1.png";
 };
 
@@ -72,7 +69,6 @@ function App() {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [postLoginTarget, setPostLoginTarget] = useState(null);
 
-  // NEW: Authentication State
   const initialAuth = getStoredAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialAuth.token);
   const [role, setRole] = useState(initialAuth.role || "");
@@ -97,12 +93,10 @@ function App() {
       showToast("Please select check-in and check-out dates.", "warning");
       return;
     }
-
     if (homeCheckIn < todayIso) {
       showToast("Past dates are not allowed for check-in.", "warning");
       return;
     }
-
     if (homeCheckOut <= homeCheckIn) {
       showToast("Check-out date must be after check-in.", "warning");
       return;
@@ -200,7 +194,6 @@ function App() {
       "admin-refunds",
     ];
 
-    // Require authentication before entering booking flow.
     if (protectedUserPages.includes(page) && !isLoggedIn && !bypassAuthGuard) {
       setPostLoginTarget({ page, room: data });
       showToast("Please login first.", "warning");
@@ -229,7 +222,7 @@ function App() {
     window.scrollTo(0, 0);
   };
 
-  // 4. Auth Handlers (NEW)
+  // 4. Auth Handlers
   const handleUserLogin = (userData) => {
     const freshAuth = getStoredAuth();
     setIsLoggedIn(true);
@@ -354,7 +347,6 @@ function App() {
 
   // --- USER AUTH PAGES ---
   if (currentPage === "login") {
-    // UPDATED: Uses handleUserLogin to set state + navigate
     return (
       <Login
         onLogin={handleUserLogin}
@@ -380,7 +372,6 @@ function App() {
   }
 
   // --- MAIN HOTEL PAGES ---
-  // Note: We pass isLoggedIn and onLogout to Navbar in every block below so the header stays consistent.
 
   if (currentPage === "rooms") {
     return (
@@ -529,7 +520,6 @@ function App() {
     );
   }
 
-  // --- RESTORED MISSING ROUTES ---
   if (currentPage === "contact") {
     return (
       <div className="App">
@@ -552,17 +542,15 @@ function App() {
           isLoggedIn={isLoggedIn}
           onLogout={handleUserLogout}
         />
-
-        {/* UPDATED LINE BELOW: Passing props */}
         <ProfileSettings
           onNavigate={handleNavigation}
           onLogout={handleUserLogout}
         />
-
         <Footer onNavigate={handleNavigation} />
       </div>
     );
   }
+
   if (currentPage === "reviews") {
     return (
       <div className="App">
@@ -712,7 +700,6 @@ function App() {
 
 // --- SHARED COMPONENTS ---
 
-// UPDATED NAVBAR: Shows different buttons based on login status
 function Navbar({ onNavigate, isLoggedIn, onLogout }) {
   const role = getStoredAuth().role;
 
@@ -778,7 +765,6 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
             role={role}
           />
         ) : (
-          // IF LOGGED OUT: Show Login & Register
           <>
             <span className="login-link" onClick={() => onNavigate("login")}>
               Login
