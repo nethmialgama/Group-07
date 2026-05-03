@@ -98,87 +98,91 @@ function CheckoutForm({ onNavigate, bookingData }) {
     }
   };
 
-  if (isProcessing) {
-    return (
-      <div className="processing-overlay">
-        <div className="processing-box">
-          <div className="processing-spinner" />
-          <p className="processing-step">{processingStep}</p>
-          <p className="processing-sub">Please do not close this window</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="gateway-layout">
-      <div className="card-form-section">
-        <div className="secure-badge">
-          <span>🔒</span>
-          <span>256-bit SSL Encrypted</span>
+    <>
+      {/* Processing overlay rendered ON TOP — keeps PaymentElement mounted underneath */}
+      {isProcessing && (
+        <div className="processing-overlay">
+          <div className="processing-box">
+            <div className="processing-spinner" />
+            <p className="processing-step">{processingStep}</p>
+            <p className="processing-sub">Please do not close this window</p>
+          </div>
         </div>
-        <PaymentElement
-          onReady={() => setIsElementReady(true)}
-          options={{
-            layout: "tabs",
-            defaultValues: {
-              billingDetails: {
-                name: bookingData?.billing?.fullName || "",
-                email: bookingData?.billing?.email || "",
-              },
-            },
-          }}
-        />
-        <div className="payment-actions" style={{ marginTop: "24px" }}>
-          <button
-            className="btn-pay"
-            onClick={handlePay}
-            disabled={isProcessing || !isElementReady}
-            style={{
-              opacity: isElementReady ? 1 : 0.6,
-              cursor: isElementReady ? "pointer" : "not-allowed",
-            }}
-          >
-            {isElementReady
-              ? `🔒 Pay LKR ${amount.toLocaleString()}`
-              : "⏳ Loading payment form..."}
-          </button>
-          <button
-            className="btn-cancel-pay"
-            onClick={() => onNavigate("payment", bookingData)}
-          >
-            ← Back
-          </button>
-        </div>
-      </div>
+      )}
 
-      <div className="payment-details-section">
-        <div className="summary-card">
-          <h3>Order Summary</h3>
-          <div className="summary-row">
-            <span>Room</span>
-            <strong>{bookingData.title || "Hotel Room"}</strong>
+      <div
+        className="gateway-layout"
+        style={{ visibility: isProcessing ? "hidden" : "visible" }}
+      >
+        <div className="card-form-section">
+          <div className="secure-badge">
+            <span>🔒</span>
+            <span>256-bit SSL Encrypted</span>
           </div>
-          <div className="summary-row">
-            <span>Check-in</span>
-            <span>{bookingData.checkIn || "-"}</span>
+          <PaymentElement
+            onReady={() => setIsElementReady(true)}
+            options={{
+              layout: "tabs",
+              defaultValues: {
+                billingDetails: {
+                  name: bookingData?.billing?.fullName || "",
+                  email: bookingData?.billing?.email || "",
+                },
+              },
+            }}
+          />
+          <div className="payment-actions" style={{ marginTop: "24px" }}>
+            <button
+              className="btn-pay"
+              onClick={handlePay}
+              disabled={isProcessing || !isElementReady}
+              style={{
+                opacity: isElementReady ? 1 : 0.6,
+                cursor: isElementReady ? "pointer" : "not-allowed",
+              }}
+            >
+              {isElementReady
+                ? `🔒 Pay LKR ${amount.toLocaleString()}`
+                : "⏳ Loading payment form..."}
+            </button>
+            <button
+              className="btn-cancel-pay"
+              onClick={() => onNavigate("payment", bookingData)}
+            >
+              ← Back
+            </button>
           </div>
-          <div className="summary-row">
-            <span>Check-out</span>
-            <span>{bookingData.checkOut || "-"}</span>
-          </div>
-          <div className="summary-row">
-            <span>Guest</span>
-            <span>{billing.fullName || "-"}</span>
-          </div>
-          <div className="summary-divider" />
-          <div className="summary-row total">
-            <span>Total</span>
-            <strong>LKR {amount.toLocaleString()}</strong>
+        </div>
+
+        <div className="payment-details-section">
+          <div className="summary-card">
+            <h3>Order Summary</h3>
+            <div className="summary-row">
+              <span>Room</span>
+              <strong>{bookingData.title || "Hotel Room"}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Check-in</span>
+              <span>{bookingData.checkIn || "-"}</span>
+            </div>
+            <div className="summary-row">
+              <span>Check-out</span>
+              <span>{bookingData.checkOut || "-"}</span>
+            </div>
+            <div className="summary-row">
+              <span>Guest</span>
+              <span>{billing.fullName || "-"}</span>
+            </div>
+            <div className="summary-divider" />
+            <div className="summary-row total">
+              <span>Total</span>
+              <strong>LKR {amount.toLocaleString()}</strong>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

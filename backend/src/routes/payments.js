@@ -197,8 +197,9 @@ router.post("/", authenticate, async (req, res) => {
     );
 
     if ((status || "Completed") === "Completed") {
+      const remainingAmount = totalPrice - numericAmount;
       const nextReservationStatus =
-        numericAmount >= totalPrice ? "Confirmed" : "Pending";
+        remainingAmount <= 0.01 ? "Confirmed" : "PartiallyPaid";
       await pool.query(
         "UPDATE Reservation SET status = ? WHERE reservationId = ?",
         [nextReservationStatus, reservationId],
