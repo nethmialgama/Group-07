@@ -18,40 +18,43 @@ function CheckoutForm({ onNavigate, bookingData }) {
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
+  const [isElementReady, setIsElementReady] = useState(false);
 
   const amount = bookingData?.amount || 0;
   const billing = bookingData?.billing || {};
 
   const handlePay = async () => {
-    if (!stripe || !elements) {
-      showToast("Payment not ready. Please wait.", "error");
-      return;
-    }
-
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      showToast(submitError.message, "error");
+    if (!stripe || !elements || !isElementReady) {
+      showToast("Payment is not ready yet. Please wait a moment.", "error");
       return;
     }
 
     setIsProcessing(true);
     setProcessingStep("Verifying card details...");
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
-    });
+    try {
+      // Submit the form first to validate fields
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        showToast(submitError.message, "error");
+        setIsProcessing(false);
+        return;
+      }
 
-    if (error) {
-      showToast(error.message, "error");
-      setIsProcessing(false);
-      setProcessingStep("");
-      return;
-    }
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+      });
 
-    if (paymentIntent && paymentIntent.status === "succeeded") {
-      setProcessingStep("Recording payment...");
-      try {
+      if (error) {
+        showToast(error.message || "Payment failed", "error");
+        setIsProcessing(false);
+        return;
+      }
+
+      if (paymentIntent?.status === "succeeded") {
+        setProcessingStep("Recording payment...");
+
         const response = await fetch("http://localhost:5000/api/payments", {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -65,24 +68,33 @@ function CheckoutForm({ onNavigate, bookingData }) {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Payment failed");
+        if (!response.ok)
+          throw new Error(data.error || "Failed to record payment");
 
         setProcessingStep("Payment successful! ✓");
+
         setTimeout(() => {
           onNavigate("payment-confirmation", {
             ...bookingData,
             paymentId: data.paymentId,
-            paidAmount: data.paidAmount,
-            remaining: data.remainingAmount,
-            cardBrand: "Card",
+            paidAmount: data.paidAmount || amount,
+            remaining: data.remainingAmount || 0,
+            cardBrand:
+              paymentIntent.payment_method_details?.card?.brand || "Card",
+            cardLast4: paymentIntent.payment_method_details?.card?.last4 || "",
             status: "Confirmed",
           });
-        }, 700);
-      } catch (err) {
-        showToast(err.message, "error");
-        setIsProcessing(false);
-        setProcessingStep("");
+        }, 800);
       }
+    } catch (err) {
+      console.error(err);
+      showToast(
+        err.message || "Something went wrong. Please try again.",
+        "error",
+      );
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep("");
     }
   };
 
@@ -105,10 +117,31 @@ function CheckoutForm({ onNavigate, bookingData }) {
           <span>🔒</span>
           <span>256-bit SSL Encrypted</span>
         </div>
-        <PaymentElement />
+        <PaymentElement
+          onReady={() => setIsElementReady(true)}
+          options={{
+            layout: "tabs",
+            defaultValues: {
+              billingDetails: {
+                name: bookingData?.billing?.fullName || "",
+                email: bookingData?.billing?.email || "",
+              },
+            },
+          }}
+        />
         <div className="payment-actions" style={{ marginTop: "24px" }}>
-          <button className="btn-pay" onClick={handlePay}>
-            🔒 Pay LKR {amount.toLocaleString()}
+          <button
+            className="btn-pay"
+            onClick={handlePay}
+            disabled={isProcessing || !isElementReady}
+            style={{
+              opacity: isElementReady ? 1 : 0.6,
+              cursor: isElementReady ? "pointer" : "not-allowed",
+            }}
+          >
+            {isElementReady
+              ? `🔒 Pay LKR ${amount.toLocaleString()}`
+              : "⏳ Loading payment form..."}
           </button>
           <button
             className="btn-cancel-pay"
@@ -205,22 +238,41 @@ function PaymentGateway({ onNavigate, room }) {
   const bookingData = room || null;
   const [clientSecret, setClientSecret] = useState("");
   const [captchaPassed, setCaptchaPassed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!bookingData?.amount) return;
+    if (!bookingData?.amount || !bookingData?.reservationId) return;
 
-    fetch("http://localhost:5000/api/payments/create-intent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-      body: JSON.stringify({ amount: bookingData.amount }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.clientSecret) setClientSecret(data.clientSecret);
-        else showToast("Failed to initialize payment", "error");
-      })
-      .catch(() => showToast("Failed to connect to payment server", "error"));
-  }, []);
+    const createIntent = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/payments/create-intent",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
+            body: JSON.stringify({ amount: bookingData.amount }),
+          },
+        );
+
+        const data = await res.json();
+        if (data.clientSecret) {
+          setClientSecret(data.clientSecret);
+        } else {
+          showToast("Failed to initialize payment", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Cannot connect to payment server", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    createIntent();
+  }, [bookingData?.amount, bookingData?.reservationId]);
 
   if (!bookingData || !bookingData.reservationId) {
     return (
@@ -242,8 +294,8 @@ function PaymentGateway({ onNavigate, room }) {
     return <CaptchaStep onVerified={() => setCaptchaPassed(true)} />;
   }
 
-  // Step 2: Payment
-  if (!clientSecret) {
+  // Step 2: Payment loading
+  if (loading || !clientSecret) {
     return (
       <div
         className="page-container"
