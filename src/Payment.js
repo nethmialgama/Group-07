@@ -6,7 +6,10 @@ import { getStoredAuth, getAuthHeaders } from "./auth";
 function Payment({ onNavigate, room }) {
   const storedAuth = getStoredAuth();
 
-  // ── ALL HOOKS FIRST ────────────────────────────────────────────────────────
+  // ── IMPORTANT: Declare selectedRoom FIRST (used inside useEffect) ─────────
+  const selectedRoom = room || null;
+
+  // ── ALL HOOKS AFTER selectedRoom ──────────────────────────────────────────
   const [fullName, setFullName] = useState(storedAuth.name || "");
   const [email, setEmail] = useState(storedAuth.email || "");
   const [phone, setPhone] = useState(storedAuth.phone || "");
@@ -23,14 +26,14 @@ function Payment({ onNavigate, room }) {
 
   // ── Fetch payment quote from backend ──────────────────────────────────────
   useEffect(() => {
-    if (hasFetchedQuote.current) return;
+    if (hasFetchedQuote.current || !selectedRoom?.reservationId) return;
     hasFetchedQuote.current = true;
 
     const fetchQuote = async () => {
       setQuoteLoading(true);
       try {
         const res = await fetch(
-          `http://localhost:5000/api/payments/policy/${selectedRoom?.reservationId}`,
+          `http://localhost:5000/api/payments/policy/${selectedRoom.reservationId}`,
           { headers: getAuthHeaders() },
         );
         const data = await res.json();
@@ -46,9 +49,9 @@ function Payment({ onNavigate, room }) {
         // Fallback: use raw price from room prop
         const fallback = Number(
           String(
-            selectedRoom?.totalPrice ||
-              selectedRoom?.rawPrice ||
-              selectedRoom?.price ||
+            selectedRoom.totalPrice ||
+              selectedRoom.rawPrice ||
+              selectedRoom.price ||
               "0",
           ).replace(/[^0-9.]/g, ""),
         );
@@ -58,11 +61,10 @@ function Payment({ onNavigate, room }) {
       }
     };
 
-    if (selectedRoom?.reservationId) fetchQuote();
-  }, []);
+    fetchQuote();
+  }, [selectedRoom?.reservationId]); // ← proper dependency
 
-  // ── Early return AFTER hooks ───────────────────────────────────────────────
-  const selectedRoom = room || null;
+  // ── Early return ──────────────────────────────────────────────────────────
   if (!selectedRoom || !selectedRoom.reservationId) {
     return (
       <div
