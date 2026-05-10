@@ -7,6 +7,8 @@ const roomsRouter = require("./routes/rooms");
 const reservationsRouter = require("./routes/reservations");
 const paymentsRouter = require("./routes/payments");
 const adminRouter = require("./routes/admin");
+
+const reviewsRouter = require("./routes/reviews");
 const contactRouter = require("./routes/contact");
 
 const app = express();
@@ -18,6 +20,8 @@ app.use("/api/rooms", roomsRouter);
 app.use("/api/reservations", reservationsRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/admin", adminRouter);
+
+app.use("/api/reviews", reviewsRouter);
 app.use("/api/contact", contactRouter);
 
 app.get("/", (req, res) => res.send("Smart Hotel Backend is running"));
