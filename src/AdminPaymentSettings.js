@@ -6,7 +6,6 @@ import { showToast } from "./toast";
 
 const DEFAULT_GATEWAYS = [
   { provider: "card", isEnabled: true, config: { providerName: "Stripe" } },
-  { provider: "paypal", isEnabled: true, config: { clientId: "" } },
   { provider: "bank", isEnabled: false, config: { accountNumber: "" } },
 ];
 

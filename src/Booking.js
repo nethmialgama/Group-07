@@ -193,10 +193,7 @@ function Booking({ onNavigate, room }) {
               <input type="radio" name="payment" id="card" defaultChecked />
               <label htmlFor="card">Credit Card 💳</label>
             </div>
-            <div className="payment-option">
-              <input type="radio" name="payment" id="paypal" />
-              <label htmlFor="paypal">PayPal 🅿️</label>
-            </div>
+
 
             <div className="policy-check">
               <input type="checkbox" />
