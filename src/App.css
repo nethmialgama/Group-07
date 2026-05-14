@@ -625,6 +625,13 @@ body,
   height: 100px;
 }
 
+.readonly-input {
+  background-color: #f3f4f6 !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+  border-color: #e5e7eb !important;
+}
+
 .btn-confirm {
   background-color: #2563eb;
   color: white;

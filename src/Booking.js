@@ -125,40 +125,27 @@ function Booking({ onNavigate, room, searchCriteria }) {
             <input
               type="date"
               value={checkIn}
-              onChange={(e) => {
-                const value = e.target.value;
-                setCheckIn(value);
-                if (value && checkOut) {
-                  const inDate = new Date(value);
-                  const outDate = new Date(checkOut);
-                  const diff = Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000));
-                  setNights(diff > 0 ? diff : 1);
-                }
-              }}
+              readOnly
+              className="readonly-input"
             />
 
             <label>Check-out Date</label>
             <input
               type="date"
               value={checkOut}
-              onChange={(e) => {
-                const value = e.target.value;
-                setCheckOut(value);
-                if (checkIn && value) {
-                  const inDate = new Date(checkIn);
-                  const outDate = new Date(value);
-                  const diff = Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000));
-                  setNights(diff > 0 ? diff : 1);
-                }
-              }}
+              readOnly
+              className="readonly-input"
             />
 
             <label>Guests</label>
-            <select value={guests} onChange={(e) => setGuests(e.target.value)}>
+            <select value={guests} disabled className="readonly-input">
               <option value="1-adult">1 Adult</option>
               <option value="2-adults">2 Adults</option>
               <option value="2-adults-1-kid">2 Adults, 1 Child</option>
             </select>
+            <p className="booking-note" style={{ fontSize: "0.85rem", color: "#666", marginTop: "-10px", marginBottom: "15px" }}>
+              * To change dates or guest count, please go back to the <span style={{ color: "#007bff", cursor: "pointer", textDecoration: "underline" }} onClick={() => onNavigate("home")}>home page</span> and search again.
+            </p>
 
             <label>Special Requests</label>
             <textarea placeholder="Any specific preferences?"></textarea>
