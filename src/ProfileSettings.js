@@ -194,9 +194,12 @@ function ProfileSettings({ onNavigate, onLogout }) {
                 <input
                   type="text"
                   value={profile.phone}
-                  onChange={(e) =>
-                    setProfile((prev) => ({ ...prev, phone: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    if (val.length <= 10) {
+                      setProfile((prev) => ({ ...prev, phone: val }));
+                    }
+                  }}
                 />
               </div>
               <div className="form-group-row">

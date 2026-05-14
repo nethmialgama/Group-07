@@ -1,5 +1,5 @@
 // src/Booking.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { getAuthHeaders, getStoredAuth } from "./auth";
 import { showToast } from "./toast";
 
@@ -27,7 +27,27 @@ function Booking({ onNavigate, room, searchCriteria }) {
     }
     return 1;
   });
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/auth/profile", {
+          headers: { ...getAuthHeaders() },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setPhone(data.phone || "");
+          setAddress(data.address || "");
+        }
+      } catch (err) {
+        console.error("Failed to load profile for autofill", err);
+      }
+    };
+    loadProfile();
+  }, []);
 
   // 2. Fix Price Calculation: Remove commas from "6,000" and turn into number
   // "6,000" -> "6000" -> 6000
@@ -54,6 +74,18 @@ function Booking({ onNavigate, room, searchCriteria }) {
 
     if (!selectedRoom.roomId) {
       showToast("Please book a room from the available rooms page", "warning");
+      return;
+    }
+
+    // Validation for phone and address
+    const cleanPhone = phone.replace(/\s/g, "");
+    if (!cleanPhone || cleanPhone.length !== 10 || !/^\d+$/.test(cleanPhone)) {
+      showToast("Mobile number must be exactly 10 digits", "warning");
+      return;
+    }
+
+    if (!address || address.length < 8) {
+      showToast("Address must be at least 8 characters long", "warning");
       return;
     }
 
@@ -146,6 +178,25 @@ function Booking({ onNavigate, room, searchCriteria }) {
             <p className="booking-note" style={{ fontSize: "0.85rem", color: "#666", marginTop: "-10px", marginBottom: "15px" }}>
               * To change dates or guest count, please go back to the <span style={{ color: "#007bff", cursor: "pointer", textDecoration: "underline" }} onClick={() => onNavigate("home")}>home page</span> and search again.
             </p>
+
+            <label>Mobile Number</label>
+            <input
+              type="text"
+              placeholder="e.g. 0771234567"
+              value={phone}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "");
+                if (val.length <= 10) setPhone(val);
+              }}
+            />
+
+            <label>Address</label>
+            <input
+              type="text"
+              placeholder="Your home address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
 
             <label>Special Requests</label>
             <textarea placeholder="Any specific preferences?"></textarea>
