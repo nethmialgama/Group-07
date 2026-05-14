@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { getAuthHeaders, getStoredAuth } from "./auth";
 import { showToast } from "./toast";
 
-function Booking({ onNavigate, room }) {
+function Booking({ onNavigate, room, searchCriteria }) {
   // 1. Handle Fallback: If page loaded directly without clicking a room, show default
   const selectedRoom = room || {
     title: "Deluxe Double Room",
@@ -14,9 +14,19 @@ function Booking({ onNavigate, room }) {
     tags: ["Wi-Fi", "AC", "Breakfast"], // Note: Rooms.js uses 'tags', mock used 'facilities'
   };
 
-  const [nights, setNights] = useState(1);
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const [checkIn, setCheckIn] = useState(searchCriteria?.checkIn || "");
+  const [checkOut, setCheckOut] = useState(searchCriteria?.checkOut || "");
+  const [guests, setGuests] = useState(searchCriteria?.guestSelection || "2-adults");
+  
+  const [nights, setNights] = useState(() => {
+    if (searchCriteria?.checkIn && searchCriteria?.checkOut) {
+      const inDate = new Date(searchCriteria.checkIn);
+      const outDate = new Date(searchCriteria.checkOut);
+      const diff = Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000));
+      return diff > 0 ? diff : 1;
+    }
+    return 1;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 2. Fix Price Calculation: Remove commas from "6,000" and turn into number
@@ -115,7 +125,16 @@ function Booking({ onNavigate, room }) {
             <input
               type="date"
               value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCheckIn(value);
+                if (value && checkOut) {
+                  const inDate = new Date(value);
+                  const outDate = new Date(checkOut);
+                  const diff = Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000));
+                  setNights(diff > 0 ? diff : 1);
+                }
+              }}
             />
 
             <label>Check-out Date</label>
@@ -128,20 +147,17 @@ function Booking({ onNavigate, room }) {
                 if (checkIn && value) {
                   const inDate = new Date(checkIn);
                   const outDate = new Date(value);
-                  const diff = Math.max(
-                    1,
-                    Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000)),
-                  );
-                  setNights(diff);
+                  const diff = Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000));
+                  setNights(diff > 0 ? diff : 1);
                 }
               }}
             />
 
             <label>Guests</label>
-            <select>
-              <option>1 Adult</option>
-              <option>2 Adults</option>
-              <option>2 Adults, 1 Child</option>
+            <select value={guests} onChange={(e) => setGuests(e.target.value)}>
+              <option value="1-adult">1 Adult</option>
+              <option value="2-adults">2 Adults</option>
+              <option value="2-adults-1-kid">2 Adults, 1 Child</option>
             </select>
 
             <label>Special Requests</label>

@@ -74,10 +74,20 @@ function App() {
   const [role, setRole] = useState(initialAuth.role || "");
   const [selectedAdminUser, setSelectedAdminUser] = useState(null);
   const [featuredRooms, setFeaturedRooms] = useState([]);
-  const [homeCheckIn, setHomeCheckIn] = useState("");
-  const [homeCheckOut, setHomeCheckOut] = useState("");
-  const [homeGuests, setHomeGuests] = useState("2-adults");
-  const [roomSearchCriteria, setRoomSearchCriteria] = useState(null);
+  const [roomSearchCriteria, setRoomSearchCriteria] = useState(() => {
+    const saved = localStorage.getItem("hotelSearchCriteria");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [homeCheckIn, setHomeCheckIn] = useState(
+    roomSearchCriteria?.checkIn || "",
+  );
+  const [homeCheckOut, setHomeCheckOut] = useState(
+    roomSearchCriteria?.checkOut || "",
+  );
+  const [homeGuests, setHomeGuests] = useState(
+    roomSearchCriteria?.guestSelection || "2-adults",
+  );
 
   const todayIso = new Date().toISOString().split("T")[0];
 
@@ -113,12 +123,14 @@ function App() {
       if (!confirmDates) return;
     }
 
-    setRoomSearchCriteria({
+    const criteria = {
       checkIn: homeCheckIn,
       checkOut: homeCheckOut,
       capacity: guestSelectionToCapacity(homeGuests),
       guestSelection: homeGuests,
-    });
+    };
+    setRoomSearchCriteria(criteria);
+    localStorage.setItem("hotelSearchCriteria", JSON.stringify(criteria));
     handleNavigation("rooms");
   };
 
@@ -412,7 +424,11 @@ function App() {
           isLoggedIn={isLoggedIn}
           onLogout={handleUserLogout}
         />
-        <Booking onNavigate={handleNavigation} room={selectedRoom} />
+        <Booking
+          onNavigate={handleNavigation}
+          room={selectedRoom}
+          searchCriteria={roomSearchCriteria}
+        />
         <Footer onNavigate={handleNavigation} />
       </div>
     );
