@@ -1,6 +1,7 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
 import "./App.css";
+import { motion, AnimatePresence } from "framer-motion";
 import { showToast } from "./toast";
 
 // --- IMPORT ALL PAGES ---
@@ -583,21 +584,44 @@ function App() {
         >
           <div className="hero-overlay"></div>
           <div className="hero-content">
-            <h1 className="hero-title animate-fade-up">Find your perfect stay</h1>
-            <p className="hero-subtitle animate-fade-up-delay">Comfortable rooms • Great location • Best price guarantee</p>
+            <motion.h1 
+              className="hero-title"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              Find your perfect stay
+            </motion.h1>
+            <motion.p 
+              className="hero-subtitle"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+            >
+              Comfortable rooms • Great location • Best price guarantee
+            </motion.p>
             
-            {/* Dedicated Tour Button Container */}
-            <div className="tour-container animate-fade-up-delay">
+            <motion.div 
+              className="tour-container"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+            >
               <button
                 onClick={() => setIsTourOpen(true)}
                 className="tour-btn-premium"
               >
                 🎥 Take a 360° Virtual Tour
               </button>
-            </div>
+            </motion.div>
           </div>
 
-          <div className="search-bar-glass animate-fade-in">
+          <motion.div 
+            className="search-bar-glass"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+          >
             <div className="search-field">
               <label>Check-in</label>
               <input
@@ -636,12 +660,18 @@ function App() {
             <button className="search-btn-gold" onClick={handleHomeSearch}>
               Search
             </button>
-          </div>
+          </motion.div>
         </header>
 
         {/* Featured Rooms */}
         <section className="featured-rooms">
-          <div className="section-header">
+          <motion.div 
+            className="section-header"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
             <h2>Featured Rooms</h2>
             <a
               href="#"
@@ -653,37 +683,44 @@ function App() {
             >
               See all rooms
             </a>
-          </div>
+          </motion.div>
 
           <div className="room-grid">
-            {featuredRooms.map((room) => (
-              <RoomCard
+            {featuredRooms.map((room, index) => (
+              <motion.div
                 key={room.id}
-                title={room.title}
-                price={room.price}
-                rating={room.rating}
-                image={room.image}
-                onViewDetails={() =>
-                  handleNavigation("room-details", {
-                    roomId: room.roomId,
-                    title: room.title,
-                    price: room.rawPrice,
-                    image: room.image,
-                    rating: Number(room.rating),
-                    tags: room.tags,
-                  })
-                }
-                onBook={() =>
-                  handleNavigation("booking", {
-                    roomId: room.roomId,
-                    title: room.title,
-                    price: room.rawPrice,
-                    image: room.image,
-                    rating: Number(room.rating),
-                    tags: room.tags,
-                  })
-                }
-              />
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <RoomCard
+                  title={room.title}
+                  price={room.price}
+                  rating={room.rating}
+                  image={room.image}
+                  onViewDetails={() =>
+                    handleNavigation("room-details", {
+                      roomId: room.roomId,
+                      title: room.title,
+                      price: room.rawPrice,
+                      image: room.image,
+                      rating: Number(room.rating),
+                      tags: room.tags,
+                    })
+                  }
+                  onBook={() =>
+                    handleNavigation("booking", {
+                      roomId: room.roomId,
+                      title: room.title,
+                      price: room.rawPrice,
+                      image: room.image,
+                      rating: Number(room.rating),
+                      tags: room.tags,
+                    })
+                  }
+                />
+              </motion.div>
             ))}
           </div>
         </section>
@@ -720,7 +757,12 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
   const role = getStoredAuth().role;
 
   return (
-    <nav className="navbar">
+    <motion.nav 
+      className="navbar"
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+    >
       <div className="logo" onClick={() => onNavigate("home")}>
         <img className="brand-logo-img" src="/images/logo.png" alt="CEYLONO" />
         <span className="brand-logo-text">CEYLONO</span>
@@ -794,13 +836,19 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
           </>
         )}
       </div>
-    </nav>
+    </motion.nav>
   );
 }
 
 function Footer({ onNavigate }) {
   return (
-    <footer className="footer">
+    <motion.footer 
+      className="footer"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 1 }}
+    >
       <div className="footer-content">
         <div className="footer-column">
           <p>Your trusted partner for comfortable stays...</p>
@@ -840,7 +888,7 @@ function Footer({ onNavigate }) {
       <div className="footer-bottom">
         <p>© 2025 CEYLONO — All rights reserved.</p>
       </div>
-    </footer>
+    </motion.footer>
   );
 }
 
