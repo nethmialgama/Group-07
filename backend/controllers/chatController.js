@@ -2,11 +2,11 @@ const { handleChat } = require("../src/services/geminiService");
 
 const chatController = async (req, res) => {
   try {
-    const message = req.body.message;
+    const { message, history, sessionId } = req.body;
 
-    const reply = await handleChat(message);
+    const result = await handleChat(message, history, sessionId);
 
-    res.json({ reply });
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");

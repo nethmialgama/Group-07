@@ -265,102 +265,100 @@ function App() {
   };
 
   // --- RENDER LOGIC (THE ROUTER) ---
+  let pageContent;
 
   // --- ADMIN PAGES ---
   if (currentPage === "admin-login") {
-    return (
+    pageContent = (
       <AdminLogin
         onNavigate={handleNavigation}
         onAdminLogin={handleUserLogin}
       />
     );
-  }
-  if (currentPage === "admin-dashboard") {
+  } else if (currentPage === "admin-dashboard") {
     if (role !== "Admin")
-      return (
+      pageContent = (
         <AdminLogin
           onNavigate={handleNavigation}
           onAdminLogin={handleUserLogin}
         />
       );
-    return (
-      <AdminDashboard
-        onNavigate={handleNavigation}
-        onLogout={handleUserLogout}
-      />
-    );
-  }
-  if (currentPage === "admin-rooms") {
+    else
+      pageContent = (
+        <AdminDashboard
+          onNavigate={handleNavigation}
+          onLogout={handleUserLogout}
+        />
+      );
+  } else if (currentPage === "admin-rooms") {
     if (role !== "Admin")
-      return (
+      pageContent = (
         <AdminLogin
           onNavigate={handleNavigation}
           onAdminLogin={handleUserLogin}
         />
       );
-    return (
-      <AdminRooms onNavigate={handleNavigation} onLogout={handleUserLogout} />
-    );
-  }
-  if (currentPage === "admin-users") {
+    else
+      pageContent = (
+        <AdminRooms onNavigate={handleNavigation} onLogout={handleUserLogout} />
+      );
+  } else if (currentPage === "admin-users") {
     if (role !== "Admin")
-      return (
+      pageContent = (
         <AdminLogin
           onNavigate={handleNavigation}
           onAdminLogin={handleUserLogin}
         />
       );
-    return (
-      <AdminUsers onNavigate={handleNavigation} onLogout={handleUserLogout} />
-    );
-  }
-  if (currentPage === "admin-user-view") {
+    else
+      pageContent = (
+        <AdminUsers onNavigate={handleNavigation} onLogout={handleUserLogout} />
+      );
+  } else if (currentPage === "admin-user-view") {
     if (role !== "Admin")
-      return (
+      pageContent = (
         <AdminLogin
           onNavigate={handleNavigation}
           onAdminLogin={handleUserLogin}
         />
       );
-    return (
-      <AdminUserView
-        onNavigate={handleNavigation}
-        onLogout={handleUserLogout}
-        user={selectedAdminUser}
-      />
-    );
-  }
-  if (currentPage === "admin-payments") {
+    else
+      pageContent = (
+        <AdminUserView
+          onNavigate={handleNavigation}
+          onLogout={handleUserLogout}
+          user={selectedAdminUser}
+        />
+      );
+  } else if (currentPage === "admin-payments") {
     if (role !== "Admin")
-      return (
+      pageContent = (
         <AdminLogin
           onNavigate={handleNavigation}
           onAdminLogin={handleUserLogin}
         />
       );
-    return (
-      <AdminPaymentSettings
-        onNavigate={handleNavigation}
-        onLogout={handleUserLogout}
-      />
-    );
-  }
-  if (currentPage === "admin-refunds") {
+    else
+      pageContent = (
+        <AdminPaymentSettings
+          onNavigate={handleNavigation}
+          onLogout={handleUserLogout}
+        />
+      );
+  } else if (currentPage === "admin-refunds") {
     if (role !== "Admin")
-      return (
+      pageContent = (
         <AdminLogin
           onNavigate={handleNavigation}
           onAdminLogin={handleUserLogin}
         />
       );
-    return (
-      <AdminRefunds onNavigate={handleNavigation} onLogout={handleUserLogout} />
-    );
-  }
-
-  // --- USER AUTH PAGES ---
-  if (currentPage === "login") {
-    return (
+    else
+      pageContent = (
+        <AdminRefunds onNavigate={handleNavigation} onLogout={handleUserLogout} />
+      );
+  } else if (currentPage === "login") {
+    pageContent = (
       <Login
         onLogin={handleUserLogin}
         onBack={() => handleNavigation("home")}
@@ -368,26 +366,19 @@ function App() {
         onForgotPassword={() => handleNavigation("forgot-password")}
       />
     );
-  }
-  if (currentPage === "signup") {
-    return (
+  } else if (currentPage === "signup") {
+    pageContent = (
       <Signup
         onLoginClick={() => handleNavigation("login")}
         onBack={() => handleNavigation("home")}
       />
     );
-  }
-  if (currentPage === "forgot-password") {
-    return <ForgotPassword onBack={() => handleNavigation("login")} />;
-  }
-  if (currentPage === "reset-password") {
-    return <ResetPassword onBackToLogin={() => handleNavigation("login")} />;
-  }
-
-  // --- MAIN HOTEL PAGES ---
-
-  if (currentPage === "rooms") {
-    return (
+  } else if (currentPage === "forgot-password") {
+    pageContent = <ForgotPassword onBack={() => handleNavigation("login")} />;
+  } else if (currentPage === "reset-password") {
+    pageContent = <ResetPassword onBackToLogin={() => handleNavigation("login")} />;
+  } else if (currentPage === "rooms") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -401,10 +392,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "room-details") {
-    return (
+  } else if (currentPage === "room-details") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -415,10 +404,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "booking") {
-    return (
+  } else if (currentPage === "booking") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -433,10 +420,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "payment") {
-    return (
+  } else if (currentPage === "payment") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -447,11 +432,9 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "payment-gateway") {
+  } else if (currentPage === "payment-gateway") {
     if (!isLoggedIn)
-      return (
+      pageContent = (
         <Login
           onLogin={handleUserLogin}
           onBack={() => handleNavigation("home")}
@@ -459,12 +442,10 @@ function App() {
           onForgotPassword={() => handleNavigation("forgot-password")}
         />
       );
-    return <PaymentGateway onNavigate={handleNavigation} room={selectedRoom} />;
-  }
-
-  if (currentPage === "payment-confirmation") {
+    else pageContent = <PaymentGateway onNavigate={handleNavigation} room={selectedRoom} />;
+  } else if (currentPage === "payment-confirmation") {
     if (!isLoggedIn)
-      return (
+      pageContent = (
         <Login
           onLogin={handleUserLogin}
           onBack={() => handleNavigation("home")}
@@ -472,13 +453,12 @@ function App() {
           onForgotPassword={() => handleNavigation("forgot-password")}
         />
       );
-    return (
-      <PaymentConfirmation onNavigate={handleNavigation} room={selectedRoom} />
-    );
-  }
-
-  if (currentPage === "dashboard") {
-    return (
+    else
+      pageContent = (
+        <PaymentConfirmation onNavigate={handleNavigation} room={selectedRoom} />
+      );
+  } else if (currentPage === "dashboard") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -493,10 +473,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "cancel") {
-    return (
+  } else if (currentPage === "cancel") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -507,10 +485,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "offers") {
-    return (
+  } else if (currentPage === "offers") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -521,10 +497,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "gallery") {
-    return (
+  } else if (currentPage === "gallery") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -535,10 +509,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "contact") {
-    return (
+  } else if (currentPage === "contact") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -549,10 +521,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "profile-settings") {
-    return (
+  } else if (currentPage === "profile-settings") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -566,10 +536,8 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
-  }
-
-  if (currentPage === "reviews") {
-    return (
+  } else if (currentPage === "reviews") {
+    pageContent = (
       <div className="App">
         <Navbar
           onNavigate={handleNavigation}
@@ -580,154 +548,155 @@ function App() {
         <Footer onNavigate={handleNavigation} />
       </div>
     );
+  } else {
+    // --- DEFAULT: HOME PAGE ---
+    pageContent = (
+      <div className="App">
+        <Navbar
+          onNavigate={handleNavigation}
+          isLoggedIn={isLoggedIn}
+          onLogout={handleUserLogout}
+        />
+
+        {/* Hero Section */}
+        <header className="hero">
+          <div className="hero-overlay"></div>
+          <div className="hero-content">
+            <h1>Find your perfect stay</h1>
+            <p>Comfortable rooms • Great location • Best price guarantee</p>
+
+            <button
+              onClick={() => setIsTourOpen(true)}
+              style={{
+                marginTop: "20px",
+                padding: "10px 25px",
+                background: "white",
+                color: "#333",
+                border: "none",
+                borderRadius: "30px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.2)",
+              }}
+            >
+              🎥 Take a 360° Virtual Tour
+            </button>
+          </div>
+
+          <div className="search-bar">
+            <div className="search-field">
+              <label>Check-in</label>
+              <input
+                type="date"
+                min={todayIso}
+                value={homeCheckIn}
+                onChange={(e) => {
+                  const nextCheckIn = e.target.value;
+                  setHomeCheckIn(nextCheckIn);
+                  if (homeCheckOut && homeCheckOut <= nextCheckIn) {
+                    setHomeCheckOut("");
+                  }
+                }}
+              />
+            </div>
+            <div className="search-field">
+              <label>Check-out</label>
+              <input
+                type="date"
+                min={homeCheckIn || todayIso}
+                value={homeCheckOut}
+                onChange={(e) => setHomeCheckOut(e.target.value)}
+              />
+            </div>
+            <div className="search-field">
+              <label>Guests</label>
+              <select
+                value={homeGuests}
+                onChange={(e) => setHomeGuests(e.target.value)}
+              >
+                <option value="1-adult">1 Adult</option>
+                <option value="2-adults">2 Adults</option>
+                <option value="2-adults-1-kid">2 Adults + 1 Kid</option>
+              </select>
+            </div>
+            <button className="search-btn" onClick={handleHomeSearch}>
+              Search
+            </button>
+          </div>
+        </header>
+
+        {/* Featured Rooms */}
+        <section className="featured-rooms">
+          <div className="section-header">
+            <h2>Featured Rooms</h2>
+            <a
+              href="#"
+              className="see-all"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation("rooms");
+              }}
+            >
+              See all rooms
+            </a>
+          </div>
+
+          <div className="room-grid">
+            {featuredRooms.map((room) => (
+              <RoomCard
+                key={room.id}
+                title={room.title}
+                price={room.price}
+                rating={room.rating}
+                image={room.image}
+                onViewDetails={() =>
+                  handleNavigation("room-details", {
+                    roomId: room.roomId,
+                    title: room.title,
+                    price: room.rawPrice,
+                    image: room.image,
+                    rating: Number(room.rating),
+                    tags: room.tags,
+                  })
+                }
+                onBook={() =>
+                  handleNavigation("booking", {
+                    roomId: room.roomId,
+                    title: room.title,
+                    price: room.rawPrice,
+                    image: room.image,
+                    rating: Number(room.rating),
+                    tags: room.tags,
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Virtual Tour Modal */}
+        <VirtualTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
+
+        <Footer onNavigate={handleNavigation} />
+      </div>
+    );
   }
 
-  // --- DEFAULT: HOME PAGE ---
   return (
-    <div className="App">
-      <Navbar
-        onNavigate={handleNavigation}
-        isLoggedIn={isLoggedIn}
-        onLogout={handleUserLogout}
+    <>
+      {pageContent}
+      <Chatbot 
+        onNavigate={handleNavigation} 
+        setSelectedRoom={setSelectedRoom}
+        setRoomSearchCriteria={(criteria) => {
+          setRoomSearchCriteria(criteria);
+          // Also sync the home search inputs
+          if (criteria.checkIn) setHomeCheckIn(criteria.checkIn);
+          if (criteria.checkOut) setHomeCheckOut(criteria.checkOut);
+          if (criteria.guestSelection) setHomeGuests(criteria.guestSelection);
+        }}
       />
-
-      {/* Hero Section */}
-      <header className="hero">
-        <div className="hero-overlay"></div>
-        <div className="hero-content">
-          <h1>Find your perfect stay</h1>
-          <p>Comfortable rooms • Great location • Best price guarantee</p>
-
-          <button
-            onClick={() => setIsTourOpen(true)}
-            style={{
-              marginTop: "20px",
-              padding: "10px 25px",
-              background: "white",
-              color: "#333",
-              border: "none",
-              borderRadius: "30px",
-              fontWeight: "bold",
-              cursor: "pointer",
-              boxShadow: "0 4px 6px rgba(0,0,0,0.2)",
-            }}
-          >
-            🎥 Take a 360° Virtual Tour
-          </button>
-        </div>
-
-        <div className="search-bar">
-          <div className="search-field">
-            <label>Check-in</label>
-            <input
-              type="date"
-              min={todayIso}
-              value={homeCheckIn}
-              onChange={(e) => {
-                const nextCheckIn = e.target.value;
-                setHomeCheckIn(nextCheckIn);
-                if (homeCheckOut && homeCheckOut <= nextCheckIn) {
-                  setHomeCheckOut("");
-                }
-              }}
-            />
-          </div>
-          <div className="search-field">
-            <label>Check-out</label>
-            <input
-              type="date"
-              min={homeCheckIn || todayIso}
-              value={homeCheckOut}
-              onChange={(e) => setHomeCheckOut(e.target.value)}
-            />
-          </div>
-          <div className="search-field">
-            <label>Guests</label>
-            <select
-              value={homeGuests}
-              onChange={(e) => setHomeGuests(e.target.value)}
-            >
-              <option value="1-adult">1 Adult</option>
-              <option value="2-adults">2 Adults</option>
-              <option value="2-adults-1-kid">2 Adults + 1 Kid</option>
-            </select>
-          </div>
-          <button className="search-btn" onClick={handleHomeSearch}>
-            Search
-          </button>
-        </div>
-      </header>
-
-      {/* Featured Rooms */}
-      <section className="featured-rooms">
-        <div className="section-header">
-          <h2>Featured Rooms</h2>
-          <a
-            href="#"
-            className="see-all"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNavigation("rooms");
-            }}
-          >
-            See all rooms
-          </a>
-        </div>
-
-        <div className="room-grid">
-          {featuredRooms.map((room) => (
-            <RoomCard
-              key={room.id}
-              title={room.title}
-              price={room.price}
-              rating={room.rating}
-              image={room.image}
-              onViewDetails={() =>
-                handleNavigation("room-details", {
-                  roomId: room.roomId,
-                  title: room.title,
-                  price: room.rawPrice,
-                  image: room.image,
-                  rating: Number(room.rating),
-                  tags: room.tags,
-                })
-              }
-              onBook={() =>
-                handleNavigation("booking", {
-                  roomId: room.roomId,
-                  title: room.title,
-                  price: room.rawPrice,
-                  image: room.image,
-                  rating: Number(room.rating),
-                  tags: room.tags,
-                })
-              }
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Virtual Tour Modal */}
-      <VirtualTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
-
-      <Footer onNavigate={handleNavigation} />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-      <Chatbot />
-    </div>
+    </>
   );
 }
 
