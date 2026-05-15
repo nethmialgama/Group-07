@@ -99,6 +99,21 @@ function App() {
     return 2;
   };
 
+  const heroImages = [
+    "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80",
+    "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1920&q=80",
+    "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=1920&q=80",
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1920&q=80"
+  ];
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleHomeSearch = () => {
     if (!homeCheckIn || !homeCheckOut) {
       showToast("Please select check-in and check-out dates.", "warning");
@@ -559,31 +574,30 @@ function App() {
         />
 
         {/* Hero Section */}
-        <header className="hero">
+        <header 
+          className="hero" 
+          style={{ 
+            backgroundImage: `url(${heroImages[heroIndex]})`,
+            transition: "background-image 1.5s ease-in-out" 
+          }}
+        >
           <div className="hero-overlay"></div>
           <div className="hero-content">
-            <h1>Find your perfect stay</h1>
-            <p>Comfortable rooms • Great location • Best price guarantee</p>
-
-            <button
-              onClick={() => setIsTourOpen(true)}
-              style={{
-                marginTop: "20px",
-                padding: "10px 25px",
-                background: "white",
-                color: "#333",
-                border: "none",
-                borderRadius: "30px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                boxShadow: "0 4px 6px rgba(0,0,0,0.2)",
-              }}
-            >
-              🎥 Take a 360° Virtual Tour
-            </button>
+            <h1 className="hero-title animate-fade-up">Find your perfect stay</h1>
+            <p className="hero-subtitle animate-fade-up-delay">Comfortable rooms • Great location • Best price guarantee</p>
+            
+            {/* Dedicated Tour Button Container */}
+            <div className="tour-container animate-fade-up-delay">
+              <button
+                onClick={() => setIsTourOpen(true)}
+                className="tour-btn-premium"
+              >
+                🎥 Take a 360° Virtual Tour
+              </button>
+            </div>
           </div>
 
-          <div className="search-bar">
+          <div className="search-bar-glass animate-fade-in">
             <div className="search-field">
               <label>Check-in</label>
               <input
@@ -619,7 +633,7 @@ function App() {
                 <option value="2-adults-1-kid">2 Adults + 1 Kid</option>
               </select>
             </div>
-            <button className="search-btn" onClick={handleHomeSearch}>
+            <button className="search-btn-gold" onClick={handleHomeSearch}>
               Search
             </button>
           </div>
