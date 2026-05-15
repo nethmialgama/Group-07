@@ -1,3 +1,6 @@
+const chatController = require("../controllers/chatController");
+// Gemini Chat endpoint
+app.post("/chat", chatController);
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
