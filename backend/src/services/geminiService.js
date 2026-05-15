@@ -1,29 +1,20 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+const { GoogleGenAI } = require("@google/genai");
 const db = require("../db");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const model = genAI.getGenerativeModel({
-  model: "gemini-pro",
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
 });
+
 
 const handleChat = async (message) => {
   // 1️⃣ Detect intent
-  const result = await model.generateContent(`
-Classify this request:
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Classify this request:\n\n"${message}"\n\nReturn ONLY JSON:\n{\n  "intent": "price_check | cheapest_room | availability",\n  "days": number,\n  "people": number,\n  "roomType": "Single | Double | Family | Suite"\n}`
+  });
 
-"${message}"
-
-Return ONLY JSON:
-{
-  "intent": "price_check | cheapest_room | availability",
-  "days": number,
-  "people": number,
-  "roomType": "Single | Double | Family | Suite"
-}
-`);
-
-  const text = (await result.response).text();
+  const text = response.text;
 
   let data;
   try {
