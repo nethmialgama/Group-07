@@ -1,4 +1,3 @@
-
 const { GoogleGenAI } = require("@google/genai");
 const db = require("../db");
 
@@ -6,12 +5,11 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-
 const handleChat = async (message) => {
   // 1️⃣ Detect intent
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: `Classify this request:\n\n"${message}"\n\nReturn ONLY JSON:\n{\n  "intent": "price_check | cheapest_room | availability",\n  "days": number,\n  "people": number,\n  "roomType": "Single | Double | Family | Suite"\n}`
+    contents: `Classify this request:\n\n"${message}"\n\nReturn ONLY JSON:\n{\n  "intent": "price_check | cheapest_room | availability",\n  "days": number,\n  "people": number,\n  "roomType": "Single | Double | Family | Suite"\n}`,
   });
 
   const text = response.text;
