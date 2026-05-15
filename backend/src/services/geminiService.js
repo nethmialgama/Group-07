@@ -12,7 +12,9 @@ const handleChat = async (message) => {
     contents: `Classify this request:\n\n"${message}"\n\nReturn ONLY JSON:\n{\n  "intent": "price_check | cheapest_room | availability",\n  "days": number,\n  "people": number,\n  "roomType": "Single | Double | Family | Suite"\n}`,
   });
 
-  const text = response.text;
+  let text = response.text;
+  // Remove Markdown code fences if present
+  text = text.replace(/```json|```/gi, "").trim();
 
   let data;
   try {
@@ -57,6 +59,31 @@ const handleChat = async (message) => {
     }
 
     return `Total price is $${total}`;
+  }
+  // 0️⃣ Friendly greetings and small talk
+  const greetings = [
+    /\bhi\b/i,
+    /\bhello\b/i,
+    /\bhey\b/i,
+    /\bgood morning\b/i,
+    /\bgood afternoon\b/i,
+    /\bgood evening\b/i,
+  ];
+  const thanks = [
+    /\bthank(s| you)?\b/i,
+    /\bthanks a lot\b/i,
+    /\bappreciate\b/i,
+  ];
+  const bye = [/\bbye\b/i, /\bgoodbye\b/i, /\bsee you\b/i];
+
+  if (greetings.some((r) => r.test(message))) {
+    return "Hi! How can I help you today? If you want to check room prices, availability, or make a booking, just ask!";
+  }
+  if (thanks.some((r) => r.test(message))) {
+    return "You're welcome! If you have any more questions or need help with a booking, just let me know.";
+  }
+  if (bye.some((r) => r.test(message))) {
+    return "Goodbye! Have a wonderful day. If you need anything else, just say hi.";
   }
 
   // 3️⃣ CHEAPEST ROOM
