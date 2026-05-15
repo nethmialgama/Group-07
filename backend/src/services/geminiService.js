@@ -32,6 +32,15 @@ Return ONLY JSON:
     return "Please ask clearly (example: 2 days single room price)";
   }
 
+  // Normalize roomType for DB
+  if (data.roomType) {
+    let rt = data.roomType.toLowerCase();
+    if (rt === "single") data.roomType = "Single";
+    else if (rt === "double") data.roomType = "Double";
+    else if (rt === "family") data.roomType = "Family";
+    else if (rt === "suite") data.roomType = "Suite";
+  }
+
   // 2️⃣ PRICE CHECK
   if (data.intent === "price_check") {
     const [rows] = await db.query(

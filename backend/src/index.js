@@ -1,6 +1,4 @@
 const chatController = require("../controllers/chatController");
-// Gemini Chat endpoint
-app.post("/chat", chatController);
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -17,6 +15,8 @@ const contactRouter = require("./routes/contact");
 const app = express();
 app.use(cors());
 app.use(express.json());
+// Gemini Chat endpoint (must be after app is defined)
+app.post("/chat", chatController);
 
 app.use("/api/auth", authRouter);
 app.use("/api/rooms", roomsRouter);

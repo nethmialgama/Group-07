@@ -21,6 +21,7 @@ import VirtualTour from "./VirtualTour";
 import AccountAvatarMenu from "./AccountAvatarMenu";
 import PaymentGateway from "./PaymentGateway";
 import PaymentConfirmation from "./PaymentConfirmation";
+import Chatbot from "./Chatbot";
 
 // --- ADMIN IMPORTS ---
 import AdminLogin from "./AdminLogin";
@@ -710,6 +711,22 @@ function App() {
       <VirtualTour isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
 
       <Footer onNavigate={handleNavigation} />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
+      <Chatbot />
     </div>
   );
 }

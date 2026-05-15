@@ -1,4 +1,4 @@
-const { handleChat } = require("../services/geminiService");
+const { handleChat } = require("../src/services/geminiService");
 
 const chatController = async (req, res) => {
   try {
