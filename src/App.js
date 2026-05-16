@@ -816,6 +816,15 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
         >
           Contact
         </a>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate("reviews");
+          }}
+        >
+          Reviews
+        </a>
       </div>
 
       <div className="nav-auth">
@@ -854,35 +863,20 @@ function Footer({ onNavigate }) {
     >
       <div className="footer-content">
         <div className="footer-column">
-          <p>Your trusted partner for comfortable stays...</p>
+          <div className="logo" onClick={() => onNavigate("home")} style={{ marginBottom: "20px" }}>
+            <span className="brand-logo-text" style={{ color: "#fff", fontSize: "1.5rem" }}>CEYLONO</span>
+          </div>
+          <p style={{ opacity: 0.8 }}>Your trusted partner for comfortable stays and unforgettable experiences. Discover the essence of luxury at CEYLONO.</p>
         </div>
         <div className="footer-column">
-          <p onClick={() => onNavigate("home")} style={{ cursor: "pointer" }}>
-            Home
-          </p>
-          <p onClick={() => onNavigate("rooms")} style={{ cursor: "pointer" }}>
-            Rooms
-          </p>
-          <p
-            onClick={() => onNavigate("booking")}
-            style={{ cursor: "pointer" }}
-          >
-            Booking
-          </p>
-          <p
-            onClick={() => onNavigate("contact")}
-            style={{ cursor: "pointer" }}
-          >
-            Contact
-          </p>
-          <p
-            onClick={() => onNavigate("reviews")}
-            style={{ cursor: "pointer" }}
-          >
-            Reviews
-          </p>
+          <h4 style={{ color: "#fff", marginBottom: "20px" }}>Experience</h4>
+          <p>Luxurious Comfort</p>
+          <p>Exquisite Dining</p>
+          <p>Spa & Wellness</p>
+          <p>World Class Service</p>
         </div>
         <div className="footer-column">
+          <h4 style={{ color: "#fff", marginBottom: "20px" }}>Contact Us</h4>
           <p>📞 +94 112 345 678</p>
           <p>✉️ smarthotel@gmail.com</p>
           <p>🏨 123 Hotel Road, Colombo</p>

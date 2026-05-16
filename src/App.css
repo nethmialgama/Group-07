@@ -452,11 +452,12 @@ body,
 
 /* --- Updated Footer --- */
 .footer {
-  background-color: #a1a1aa; /* Grey background */
-  padding: 60px 80px 20px 80px;
-  color: #1f2937;
+  background-color: #0f172a; /* Deep Navy/Slate background */
+  padding: 80px 80px 40px 80px;
+  color: #f8fafc; /* Very light slate for text */
   font-size: 1rem;
   margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-content {
@@ -480,11 +481,11 @@ body,
 
 .footer-bottom {
   text-align: center;
-  margin-top: 32px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(31, 41, 55, 0.2);
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.9rem;
-  color: #4b5563;
+  color: #94a3b8; /* Muted slate for bottom text */
 }
 
 .footer-bottom p {
