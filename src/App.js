@@ -176,6 +176,7 @@ function App() {
               .split(",")
               .map((item) => item.trim())
               .filter(Boolean),
+            capacity: Number(room.capacity || 0),
           }));
 
         setFeaturedRooms(mapped);
@@ -707,6 +708,7 @@ function App() {
                       image: room.image,
                       rating: Number(room.rating),
                       tags: room.tags,
+                      capacity: room.capacity,
                     })
                   }
                   onBook={() =>
@@ -717,6 +719,7 @@ function App() {
                       image: room.image,
                       rating: Number(room.rating),
                       tags: room.tags,
+                      capacity: room.capacity,
                     })
                   }
                 />
