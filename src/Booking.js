@@ -17,6 +17,12 @@ function Booking({ onNavigate, room, searchCriteria }) {
   const [checkIn, setCheckIn] = useState(searchCriteria?.checkIn || new Date(Date.now() + 86400000).toISOString().split("T")[0]);
   const [checkOut, setCheckOut] = useState(searchCriteria?.checkOut || new Date(Date.now() + 172800000).toISOString().split("T")[0]);
   
+  // Sync with searchCriteria if it changes (e.g. from chatbot)
+  useEffect(() => {
+    if (searchCriteria?.checkIn) setCheckIn(searchCriteria.checkIn);
+    if (searchCriteria?.checkOut) setCheckOut(searchCriteria.checkOut);
+  }, [searchCriteria]);
+
   // Set guests based on room capacity
   const getGuestSelectionByCapacity = (cap) => {
     if (cap === 1) return "1-adult";

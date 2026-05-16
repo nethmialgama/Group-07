@@ -44,12 +44,18 @@ const handleChat = async (message, history = [], sessionId = "default") => {
       ${chatHistory}
       User: ${message}
 
+      ROOM CAPACITIES:
+      - Single Bed Room: 1 Adult
+      - Double Bed Room: 2 Adults
+      - Family Room: 2 Adults + 1 Kid
+      
       INSTRUCTIONS:
-      1. If the user gives dates or room preferences, update the memory.
-      2. DATE VALIDATION: If the user suggests dates in the past (before ${today}), politely inform them that we only accept bookings for future dates. DO NOT redirect.
-      3. If you have enough info (Future Dates and Room Type) and the user wants to book, return EXACTLY this JSON format:
-         { "reply": "Great! I'm redirecting you to the booking page now.", "redirect": "/booking", "bookingDetails": { "roomType": "...", "checkIn": "...", "checkOut": "..." }, "updateMemory": { ... } }
-      4. Otherwise, return:
+      1. If the user gives dates, room preferences, or guest count, update the memory.
+      2. If a user specifies a room type (e.g., "Double Room"), assume the standard guest count for that room (e.g., 2 guests) and do NOT ask for it again unless they specifically want a different number.
+      3. DATE VALIDATION: If the user suggests dates in the past (before ${today}), politely inform them that we only accept bookings for future dates. DO NOT redirect.
+      4. If you have enough info (Future Dates and Room Type/Guest Count) and the user wants to book, return EXACTLY this JSON format:
+         { "reply": "Great! I'm redirecting you to the booking page now.", "redirect": "/booking", "bookingDetails": { "roomType": "...", "checkIn": "...", "checkOut": "...", "guests": 2 }, "updateMemory": { ... } }
+      5. Otherwise, return:
          { "reply": "...", "updateMemory": { ... } }
       
       Return ONLY the JSON.

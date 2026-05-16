@@ -1,6 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./Chatbot.css";
 
+const getRoomImage = (roomType = "", idx = 0) => {
+  const normalized = String(roomType).trim().toLowerCase();
+  if (normalized.includes("single")) {
+    const singleImages = ["/images/single1.png", "/images/single2.png"];
+    return singleImages[idx % singleImages.length];
+  }
+  if (normalized.includes("double")) {
+    const doubleImages = ["/images/double1.png", "/images/double2.png", "/images/double3.png"];
+    return doubleImages[idx % doubleImages.length];
+  }
+  if (normalized.includes("trible") || normalized.includes("triple") || normalized.includes("family")) {
+    const tribleImages = ["/images/trible1.png", "/images/trible2.png"];
+    return tribleImages[idx % tribleImages.length];
+  }
+  return "/images/single1.png";
+};
+
 export default function Chatbot({ onNavigate, setSelectedRoom, setRoomSearchCriteria }) {
   const [open, setOpen] = useState(false);
   const [sessionId] = useState(() => {
@@ -50,26 +67,60 @@ export default function Chatbot({ onNavigate, setSelectedRoom, setRoomSearchCrit
 
       // Handle Redirection for Booking
       if (data.redirect === "/booking" && data.bookingDetails) {
-        setTimeout(() => {
-          // 1. Set the search criteria
-          setRoomSearchCriteria({
-            checkIn: data.bookingDetails.checkIn,
-            checkOut: data.bookingDetails.checkOut,
-            guestSelection: "2-adults"
-          });
+        const { checkIn, checkOut, roomType, guests } = data.bookingDetails;
+        
+        // Determine capacity based on guests or room type
+        const capacityMap = { "single": 1, "double": 2, "triple": 3, "family": 3 };
+        const capacity = guests || capacityMap[roomType.toLowerCase()] || 2;
+        
+        try {
+          // Fetch real available rooms for these dates
+          const roomRes = await fetch(`http://localhost:5000/api/rooms?checkIn=${checkIn}&checkOut=${checkOut}&capacity=${capacity}`);
+          const availableRooms = await roomRes.json();
           
-          // 2. Try to find room info or use a placeholder
-          setSelectedRoom({
-            roomId: 1, // Default or parsed from data
-            title: `${data.bookingDetails.roomType} Room`,
-            price: "5000", 
-            image: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80",
-            tags: ["Wi-Fi", "AC"]
-          });
+          // Find a room that matches the requested type
+          const matchingRoom = availableRooms.find(r => 
+            r.roomType.toLowerCase().includes(roomType.toLowerCase()) || 
+            roomType.toLowerCase().includes(r.roomType.toLowerCase())
+          );
 
-          // 3. Navigate
-          onNavigate("booking");
-        }, 1500);
+          if (matchingRoom) {
+            setTimeout(() => {
+              // 1. Set the search criteria (this also syncs home inputs via App.js callback)
+              setRoomSearchCriteria({
+                checkIn,
+                checkOut,
+                guestSelection: capacity === 1 ? "1-adult" : (capacity === 2 ? "2-adults" : "2-adults-1-kid"),
+                capacity: capacity
+              });
+              
+              // 2. Set the actual available room details
+              setSelectedRoom({
+                roomId: matchingRoom.roomId,
+                title: `${matchingRoom.roomType} Room`,
+                price: matchingRoom.roomPrice, 
+                image: getRoomImage(matchingRoom.roomType, matchingRoom.roomId),
+                tags: (matchingRoom.amenities || "Wi-Fi, AC").split(",").map(t => t.trim()),
+                capacity: matchingRoom.capacity,
+                rating: 4.5
+              });
+
+              // 3. Navigate to booking page
+              onNavigate("booking");
+            }, 1000);
+          } else {
+            // Room not available for these dates
+            setMessages((msgs) => [...msgs, { 
+              from: "bot", 
+              text: `I checked our system, and unfortunately, no ${roomType} rooms are available from ${checkIn} to ${checkOut}. Would you like to check other dates or a different room type?` 
+            }]);
+          }
+        } catch (err) {
+          console.error("Redirection error:", err);
+          // Fallback: just set criteria and show rooms page if something goes wrong
+          setRoomSearchCriteria({ checkIn, checkOut, capacity });
+          onNavigate("rooms");
+        }
       }
     } catch (err) {
       console.error(err);
