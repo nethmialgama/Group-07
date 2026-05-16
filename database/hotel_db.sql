@@ -316,7 +316,7 @@ VALUES
 ('407','Double',2,4300.00,'WiFi, TV, A/C, Living Room','Suite with living room','Available'),
 ('408','Single',1,2400.00,'WiFi, TV, A/C, Kitchen','Suite with kitchen','Available'),
 ('409','Double',2,4600.00,'WiFi, TV, A/C, Kitchen','Suite with kitchen','Available'),
-('410','Suite',4,9450.00,'WiFi, TV, A/C, Balcony, Kitchen, Jacuzzi','Presidential suite','Available');
+('410','Suite',3,3450.00,'WiFi, TV, A/C, Balcony, Kitchen, Jacuzzi','Presidential suite','Available');
 
 -- INSERT Sample Staff
 INSERT INTO Staff (nic, name, phone, email, role, username, password_hash, birthDate, address)

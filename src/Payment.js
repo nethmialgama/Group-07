@@ -259,7 +259,7 @@ function Payment({ onNavigate, room }) {
           {/* Payment Amount Section */}
           {quoteLoading ? (
             <div className="quote-loading">
-              ⏳ Calculating payment requirements...
+              Calculating payment requirements...
             </div>
           ) : (
             <div className="payment-amount-card">
@@ -301,7 +301,7 @@ function Payment({ onNavigate, room }) {
                       </span>
                     )}
                     {payAmount >= totalPrice && (
-                      <span className="pay-amount-full">✓ Full payment</span>
+                      <span className="pay-amount-full">Full payment</span>
                     )}
                   </div>
 
@@ -359,7 +359,7 @@ function Payment({ onNavigate, room }) {
                     <span className="pay-amount-value">
                       LKR {totalPrice.toLocaleString()}
                     </span>
-                    <span className="pay-amount-full">✓ Full payment</span>
+                    <span className="pay-amount-full">Full payment</span>
                   </div>
                 </>
               )}
@@ -410,13 +410,13 @@ function Payment({ onNavigate, room }) {
                 cursor: agreedToPolicy ? "pointer" : "not-allowed",
               }}
             >
-              Confirm &amp; Proceed to Payment →
+              Confirm and Proceed to Payment
             </button>
             <button
               className="btn-cancel-pay"
               onClick={() => onNavigate("booking")}
             >
-              ← Back to Booking
+              Back to Booking
             </button>
           </div>
         </div>

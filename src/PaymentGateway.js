@@ -106,7 +106,7 @@ function CheckoutForm({ onNavigate, bookingData }) {
           <div className="processing-box">
             <div className="processing-spinner" />
             <p className="processing-step">{processingStep}</p>
-            <p className="processing-sub">Please do not close this window</p>
+            <p className="processing-sub">Please do not close or refresh this window</p>
           </div>
         </div>
       )}
@@ -117,8 +117,10 @@ function CheckoutForm({ onNavigate, bookingData }) {
       >
         <div className="card-form-section">
           <div className="secure-badge">
-            <span>🔒</span>
-            <span>256-bit SSL Encrypted</span>
+            <svg className="secure-icon" viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 15.5L7.5 13l1.41-1.41L11 13.67l4.59-4.59L17 10.5 11 16.5z"/>
+            </svg>
+            <span>Secure 256-bit SSL Encrypted Connection</span>
           </div>
           <PaymentElement
             onReady={() => setIsElementReady(true)}
@@ -143,15 +145,24 @@ function CheckoutForm({ onNavigate, bookingData }) {
               }}
             >
               {isElementReady
-                ? `🔒 Pay LKR ${amount.toLocaleString()}`
-                : "⏳ Loading payment form..."}
+                ? `Confirm Payment: LKR ${amount.toLocaleString()}`
+                : "Loading Secure Form..."}
             </button>
             <button
               className="btn-cancel-pay"
               onClick={() => onNavigate("payment", bookingData)}
             >
-              ← Back
+              Return to Billing
             </button>
+          </div>
+          <div className="payment-methods-badge">
+            <span className="methods-label">Accepted Payment Methods</span>
+            <div className="methods-icons">
+              <span className="method-tag">VISA</span>
+              <span className="method-tag">MASTERCARD</span>
+              <span className="method-tag">AMEX</span>
+              <span className="method-tag">STRIPE</span>
+            </div>
           </div>
         </div>
 
@@ -175,9 +186,11 @@ function CheckoutForm({ onNavigate, bookingData }) {
               <span>{billing.fullName || "-"}</span>
             </div>
             <div className="summary-divider" />
-            <div className="summary-row total">
-              <span>Total</span>
-              <strong>LKR {amount.toLocaleString()}</strong>
+            <div className="pay-amount-display">
+              <span className="pay-amount-value">
+                LKR {amount.toLocaleString()}
+              </span>
+              <span className="pay-amount-full">Full payment</span>
             </div>
           </div>
         </div>
@@ -305,7 +318,7 @@ function PaymentGateway({ onNavigate, room }) {
         className="page-container"
         style={{ textAlign: "center", paddingTop: "80px" }}
       >
-        <p>⏳ Initializing payment...</p>
+        <p>Initializing secure payment gateway...</p>
       </div>
     );
   }
@@ -313,14 +326,14 @@ function PaymentGateway({ onNavigate, room }) {
   return (
     <div className="page-container">
       <div className="payment-header">
-        <h1>Secure Payment</h1>
-        <p>🔒 Your payment is encrypted and secure</p>
+        <h1>Payment Gateway</h1>
+        <p>All transactions are secure and encrypted</p>
       </div>
 
       <div className="payment-steps">
         <div className="step done">
-          <span className="step-number">✓</span>
-          <span className="step-label">Review &amp; Billing</span>
+          <span className="step-number">1</span>
+          <span className="step-label">Billing Info</span>
         </div>
         <div className="step-line done" />
         <div className="step active">
@@ -334,7 +347,24 @@ function PaymentGateway({ onNavigate, room }) {
         </div>
       </div>
 
-      <Elements stripe={stripePromise} options={{ clientSecret }}>
+      <Elements 
+        stripe={stripePromise} 
+        options={{ 
+          clientSecret,
+          appearance: {
+            theme: 'stripe',
+            variables: {
+              colorPrimary: '#4f46e5',
+              colorBackground: '#ffffff',
+              colorText: '#1e293b',
+              colorDanger: '#df1b41',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              spacingUnit: '4px',
+              borderRadius: '8px',
+            },
+          }
+        }}
+      >
         <CheckoutForm onNavigate={onNavigate} bookingData={bookingData} />
       </Elements>
     </div>
