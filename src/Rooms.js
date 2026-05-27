@@ -7,7 +7,7 @@ const getRoomImage = (roomType = "", idx = 0, capacity = 0) => {
   const normalized = String(roomType).trim().toLowerCase();
 
   if (normalized.includes("single")) {
-    const singleImages = ["/images/single1.png", "/images/single2.png"];
+    const singleImages = ["/images/single1.png", "/images/single2.png", "/images/single3.jpg"];
     return singleImages[idx % singleImages.length];
   }
 
@@ -16,6 +16,8 @@ const getRoomImage = (roomType = "", idx = 0, capacity = 0) => {
       "/images/double1.png",
       "/images/double2.png",
       "/images/double3.png",
+      "/images/double4.jpg",
+      "/images/double5.jpg"
     ];
     return doubleImages[idx % doubleImages.length];
   }
@@ -62,23 +64,35 @@ function Rooms({ onNavigate, searchCriteria }) {
         if (!response.ok) {
           throw new Error(data.error || "Failed to load rooms");
         }
-
         const mapped = data.map((room, idx) => ({
           id: room.roomId,
-          roomId: room.roomId,
-          roomType: room.roomType,
+          room_id: room.roomId,
+
+          room_number: room.roomNumber,
+          room_type: room.roomType,
+
+          price: Number(room.roomPrice || 0).toLocaleString(),
+
           capacity: Number(room.capacity || 0),
-          title: `${room.roomType} Room`,
-          tags: (room.amenities || "Wi-Fi, AC")
+
+          status: room.status,
+
+          image: getRoomImage(room.roomType, idx, room.capacity),
+
+          amenities: (room.amenities || "Wi-Fi, AC")
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean),
-          amenitiesText: String(room.amenities || ""),
-          descriptionText: String(room.description || ""),
-          price: Number(room.roomPrice || 0).toLocaleString(),
+
+          description: String(room.description || ""),
+
+          title: `${room.roomType} Room`,
+
           rating: 4 + (idx % 10) / 10,
-          image: getRoomImage(room.roomType, idx, room.capacity),
-          status: room.status,
+
+          tags: room.amenities
+            ? room.amenities.split(",").map((x) => x.trim())
+            : ["Wi-Fi", "AC"],
         }));
 
         setRoomsData(mapped);
