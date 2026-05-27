@@ -127,43 +127,45 @@ function App() {
     });
     handleNavigation("rooms");
   };
+useEffect(() => {
+  const loadFeaturedRooms = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/rooms");
+      const data = await response.json();
 
-  useEffect(() => {
-    const loadFeaturedRooms = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/rooms");
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to load featured rooms");
-        }
-
-        const mapped = data
-          .filter((room) => room.status === "Available")
-          .sort((a, b) => Number(b.roomId) - Number(a.roomId))
-          .slice(0, 3)
-          .map((room, idx) => ({
-            id: room.roomId,
-            roomId: room.roomId,
-            title: `${room.roomType} Room`,
-            price: `LKR ${Number(room.roomPrice || 0).toLocaleString()}`,
-            rawPrice: Number(room.roomPrice || 0).toLocaleString(),
-            rating: (4.2 + (idx % 4) * 0.2).toFixed(1),
-            image: getRoomImage(room.roomType, idx),
-            tags: (room.amenities || "Wi-Fi, AC")
-              .split(",")
-              .map((item) => item.trim())
-              .filter(Boolean),
-          }));
-
-        setFeaturedRooms(mapped);
-      } catch (err) {
-        console.error(err);
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to load featured rooms");
       }
-    };
 
-    loadFeaturedRooms();
-  }, []);
+      const mapped = data
+        .filter((room) => room.status === "Available")
+        .slice(0, 3)
+        .map((room, idx) => ({
+          id: room.roomId,
+          roomId: room.roomId,
+          title: `${room.roomType} Room`,
+          price: `LKR ${Number(room.roomPrice || 0).toLocaleString()}`,
+          rawPrice: Number(room.roomPrice || 0).toLocaleString(),
+          rating: (4.2 + (idx % 4) * 0.2).toFixed(1),
 
+          // 🔥 IMPORTANT FIX (USE DB IMAGE)
+          image: `http://localhost:5000/images/${room.image}`,
+
+          tags: (room.amenities || "Wi-Fi, AC")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        }));
+
+      setFeaturedRooms(mapped);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadFeaturedRooms();
+}, []);
+        
   // 2. Handle Browser "Back" Button
   useEffect(() => {
     const handlePopState = (event) => {
@@ -532,7 +534,7 @@ function App() {
   // --- RESTORED MISSING ROUTES ---
   if (currentPage === "contact") {
     return (
-      <div className="App">
+      <div className="App contact-page">
         <Navbar
           onNavigate={handleNavigation}
           isLoggedIn={isLoggedIn}
