@@ -766,7 +766,12 @@ function App() {
           if (criteria.guestSelection) setHomeGuests(criteria.guestSelection);
         }}
         open={isChatbotOpen}
-        setOpen={setIsChatbotOpen}
+        setOpen={(isOpenVal) => {
+          setIsChatbotOpen(isOpenVal);
+          if (isOpenVal) {
+            setShowWelcomeBot(false);
+          }
+        }}
       />
       <WelcomeBotModal 
         isOpen={showWelcomeBot}

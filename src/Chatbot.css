@@ -8,7 +8,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  z-index: 1001;
+  z-index: 1000000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -35,7 +35,7 @@
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  z-index: 1002;
+  z-index: 1000001;
   display: flex;
   flex-direction: column;
   overflow: hidden;
