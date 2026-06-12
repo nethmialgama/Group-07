@@ -106,7 +106,9 @@ function CheckoutForm({ onNavigate, bookingData }) {
           <div className="processing-box">
             <div className="processing-spinner" />
             <p className="processing-step">{processingStep}</p>
-            <p className="processing-sub">Please do not close or refresh this window</p>
+            <p className="processing-sub">
+              Please do not close or refresh this window
+            </p>
           </div>
         </div>
       )}
@@ -117,8 +119,16 @@ function CheckoutForm({ onNavigate, bookingData }) {
       >
         <div className="card-form-section">
           <div className="secure-badge">
-            <svg className="secure-icon" viewBox="0 0 24 24" width="16" height="16">
-              <path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 15.5L7.5 13l1.41-1.41L11 13.67l4.59-4.59L17 10.5 11 16.5z"/>
+            <svg
+              className="secure-icon"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+            >
+              <path
+                fill="currentColor"
+                d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 15.5L7.5 13l1.41-1.41L11 13.67l4.59-4.59L17 10.5 11 16.5z"
+              />
             </svg>
             <span>Secure 256-bit SSL Encrypted Connection</span>
           </div>
@@ -213,38 +223,34 @@ function CaptchaStep({ onVerified }) {
       className="page-container"
       style={{ textAlign: "center", paddingTop: "60px" }}
     >
-      <div className="payment-header">
-        <h1>Security Check</h1>
-        <p>Please verify you are human before proceeding to payment</p>
-      </div>
+      <div className="captcha-card">
+        <div className="payment-header captcha-header">
+          <h1>Security Check</h1>
+          <p>Please verify you are human before proceeding to payment</p>
+        </div>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "24px",
-          marginTop: "40px",
-        }}
-      >
-        <ReCAPTCHA
-          ref={recaptchaRef}
-          sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
-          onChange={handleChange}
-          onExpired={() => setVerified(false)}
-        />
+        <div className="captcha-body">
+          <div className="captcha-widget">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+              onChange={handleChange}
+              onExpired={() => setVerified(false)}
+            />
+          </div>
 
-        <button
-          className="btn-pay"
-          disabled={!verified}
-          onClick={onVerified}
-          style={{
-            opacity: verified ? 1 : 0.5,
-            cursor: verified ? "pointer" : "not-allowed",
-          }}
-        >
-          Continue to Payment →
-        </button>
+          <button
+            className="btn-pay captcha-continue-btn"
+            disabled={!verified}
+            onClick={onVerified}
+            style={{
+              opacity: verified ? 1 : 0.5,
+              cursor: verified ? "pointer" : "not-allowed",
+            }}
+          >
+            Continue to Payment →
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -569,7 +575,11 @@ function PaymentGateway({ onNavigate, room }) {
     };
 
     createIntent();
-  }, [bookingData?.amount, bookingData?.reservationId, bookingData?.paymentMethod]);
+  }, [
+    bookingData?.amount,
+    bookingData?.reservationId,
+    bookingData?.paymentMethod,
+  ]);
 
   if (!bookingData || !bookingData.reservationId) {
     return (
