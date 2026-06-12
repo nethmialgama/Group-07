@@ -800,7 +800,6 @@ function Navbar({ onNavigate, isLoggedIn, onLogout }) {
     >
       <div className="logo" onClick={() => onNavigate("home")}>
         <img className="brand-logo-img" src="/images/logo.png" alt="CEYLONO" />
-        <span className="brand-logo-text">CEYLONO</span>
       </div>
       <div className="nav-links">
         <a

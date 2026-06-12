@@ -222,7 +222,6 @@ function AdminDashboard({ onNavigate, onLogout }) {
               src="/images/logo.png"
               alt="CEYLONO"
             />
-            <span className="brand-logo-text">CEYLONO</span>
           </div>
           <div className="admin-quick-links">
             <a

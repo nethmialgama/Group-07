@@ -29,7 +29,7 @@ body,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 50px;
+  padding: 5px 30px;
   background-color: white;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   position: sticky;
@@ -45,8 +45,8 @@ body,
 }
 
 .brand-logo-img {
-  width: 76px;
-  height: 76px;
+  width: 114px;
+  height: 114px;
   object-fit: contain;
   border-radius: 8px;
 }
@@ -60,7 +60,7 @@ body,
 }
 
 .nav-links a {
-  margin: 0 20px;
+  margin: 0 12px;
   text-decoration: none;
   color: #333;
   font-weight: 500;
@@ -5144,7 +5144,7 @@ h3,
 .navbar {
   background: white;
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
-  padding: 15px 40px;
+  padding: 5px 30px;
 }
 
 /* Sidebar (Admin) */
