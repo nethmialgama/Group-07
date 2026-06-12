@@ -42,7 +42,11 @@ function Payment({ onNavigate, room }) {
 
         setQuote(data);
         // Default slider to the minimum required amount
-        setPayAmount(data.advancePayment.requiredAmount);
+        if (selectedRoom?.paymentMethod === "slip") {
+          setPayAmount(data.totalPrice);
+        } else {
+          setPayAmount(data.advancePayment.requiredAmount);
+        }
       } catch (err) {
         console.error(err);
         showToast("Could not load payment details. Please try again.", "error");
@@ -278,7 +282,7 @@ function Payment({ onNavigate, room }) {
                 </div>
               )}
 
-              {partialAllowed ? (
+              {partialAllowed && selectedRoom?.paymentMethod !== "slip" ? (
                 <>
                   {/* Policy note */}
                   <p className="payment-policy-note">
@@ -352,8 +356,9 @@ function Payment({ onNavigate, room }) {
                 /* Full payment required — no slider */
                 <>
                   <p className="payment-policy-note">
-                    Your check-in is less than 20 days away. Full payment is
-                    required at this time.
+                    {selectedRoom?.paymentMethod === "slip"
+                      ? "Bank Slip Upload requires full payment of the booking total."
+                      : "Your check-in is less than 20 days away. Full payment is required at this time."}
                   </p>
                   <div className="pay-amount-display">
                     <span className="pay-amount-value">

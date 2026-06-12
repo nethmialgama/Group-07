@@ -250,14 +250,294 @@ function CaptchaStep({ onVerified }) {
   );
 }
 
+// ── Slip Upload Form ─────────────────────────────────────────────────────────
+function SlipUploadForm({ onNavigate, bookingData }) {
+  const [slipFile, setSlipFile] = useState(null);
+  const [slipPreview, setSlipPreview] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState("");
+
+  const amount = bookingData?.amount || 0;
+  const billing = bookingData?.billing || {};
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please upload an image file (PNG, JPG, JPEG)", "error");
+      return;
+    }
+
+    setSlipFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSlipPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpload = async () => {
+    if (!slipPreview) {
+      showToast("Please select a slip image file first.", "error");
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingStep("Uploading slip and submitting booking...");
+
+    try {
+      const response = await fetch("http://localhost:5000/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          reservationId: bookingData.reservationId,
+          amount: amount,
+          payment_method: "Slip",
+          status: "Pending",
+          slip_image: slipPreview,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to record payment");
+      }
+
+      setProcessingStep("Upload successful! ✓");
+
+      setTimeout(() => {
+        onNavigate("payment-confirmation", {
+          ...bookingData,
+          paymentId: data.paymentId,
+          paidAmount: amount,
+          remaining: 0,
+          status: "Pending",
+        });
+      }, 800);
+    } catch (err) {
+      console.error(err);
+      showToast(
+        err.message || "Failed to upload bank slip. Please try again.",
+        "error",
+      );
+    } finally {
+      setIsProcessing(false);
+      setProcessingStep("");
+    }
+  };
+
+  return (
+    <>
+      {isProcessing && (
+        <div className="processing-overlay">
+          <div className="processing-box">
+            <div className="processing-spinner" />
+            <p className="processing-step">{processingStep}</p>
+            <p className="processing-sub">
+              Please do not close or refresh this window
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div
+        className="gateway-layout"
+        style={{ visibility: isProcessing ? "hidden" : "visible" }}
+      >
+        <div className="card-form-section">
+          <div
+            className="bank-details-card"
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "20px",
+              marginBottom: "24px",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#1e293b",
+                borderBottom: "1px solid #e2e8f0",
+                paddingBottom: "10px",
+              }}
+            >
+              Hotel Bank Account Details
+            </h3>
+            <p style={{ fontSize: "14px", color: "#64748b" }}>
+              Please transfer the full booking amount of{" "}
+              <strong>LKR {amount.toLocaleString()}</strong> to the following
+              account, then upload your deposit slip or transaction screenshot.
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gap: "10px",
+                marginTop: "15px",
+                fontSize: "14px",
+              }}
+            >
+              <div>
+                <strong>Bank Name:</strong> Ceylono International Bank
+              </div>
+              <div>
+                <strong>Account Number:</strong> 1002-3948-2938
+              </div>
+              <div>
+                <strong>Branch:</strong> Colombo Fort
+              </div>
+              <div>
+                <strong>Account Name:</strong> Ceylono Hotels (Pvt) Ltd
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "2px dashed #cbd5e1",
+              borderRadius: "8px",
+              padding: "30px",
+              textAlign: "center",
+              background: "#fafafa",
+              cursor: "pointer",
+              position: "relative",
+            }}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                opacity: 0,
+                cursor: "pointer",
+              }}
+            />
+            {slipPreview ? (
+              <div>
+                <img
+                  src={slipPreview}
+                  alt="Slip Preview"
+                  style={{
+                    maxHeight: "150px",
+                    maxWidth: "100%",
+                    borderRadius: "4px",
+                    marginBottom: "10px",
+                  }}
+                />
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "14px",
+                    color: "#059669",
+                    fontWeight: "bold",
+                  }}
+                >
+                  ✓ {slipFile?.name} (Click or drag to change)
+                </p>
+              </div>
+            ) : (
+              <div>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="48"
+                  height="48"
+                  style={{ color: "#94a3b8", marginBottom: "10px" }}
+                >
+                  <path
+                    fill="currentColor"
+                    d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+                  />
+                </svg>
+                <p style={{ margin: 0, fontSize: "15px", color: "#64748b" }}>
+                  Click or Drag & Drop to Upload Bank Slip
+                </p>
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    fontSize: "12px",
+                    color: "#94a3b8",
+                  }}
+                >
+                  Supports PNG, JPG, JPEG
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="payment-actions" style={{ marginTop: "24px" }}>
+            <button
+              className="btn-pay"
+              onClick={handleUpload}
+              disabled={isProcessing || !slipPreview}
+              style={{
+                opacity: slipPreview ? 1 : 0.6,
+                cursor: slipPreview ? "pointer" : "not-allowed",
+              }}
+            >
+              Upload Slip & Confirm Booking
+            </button>
+            <button
+              className="btn-cancel-pay"
+              onClick={() => onNavigate("payment", bookingData)}
+            >
+              Return to Billing
+            </button>
+          </div>
+        </div>
+
+        <div className="payment-details-section">
+          <div className="summary-card">
+            <h3>Order Summary</h3>
+            <div className="summary-row">
+              <span>Room</span>
+              <strong>{bookingData.title || "Hotel Room"}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Check-in</span>
+              <span>{bookingData.checkIn || "-"}</span>
+            </div>
+            <div className="summary-row">
+              <span>Check-out</span>
+              <span>{bookingData.checkOut || "-"}</span>
+            </div>
+            <div className="summary-row">
+              <span>Guest</span>
+              <span>{billing.fullName || "-"}</span>
+            </div>
+            <div className="summary-divider" />
+            <div className="pay-amount-display">
+              <span className="pay-amount-value">
+                LKR {amount.toLocaleString()}
+              </span>
+              <span className="pay-amount-full">Full payment</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Main Wrapper ─────────────────────────────────────────────────────────────
 function PaymentGateway({ onNavigate, room }) {
   const bookingData = room || null;
   const [clientSecret, setClientSecret] = useState("");
   const [captchaPassed, setCaptchaPassed] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(bookingData?.paymentMethod !== "slip");
 
   useEffect(() => {
+    if (bookingData?.paymentMethod === "slip") {
+      setLoading(false);
+      return;
+    }
     if (!bookingData?.amount || !bookingData?.reservationId) return;
 
     const createIntent = async () => {
@@ -289,7 +569,7 @@ function PaymentGateway({ onNavigate, room }) {
     };
 
     createIntent();
-  }, [bookingData?.amount, bookingData?.reservationId]);
+  }, [bookingData?.amount, bookingData?.reservationId, bookingData?.paymentMethod]);
 
   if (!bookingData || !bookingData.reservationId) {
     return (
@@ -312,7 +592,7 @@ function PaymentGateway({ onNavigate, room }) {
   }
 
   // Step 2: Payment loading
-  if (loading || !clientSecret) {
+  if (loading || (!clientSecret && bookingData?.paymentMethod !== "slip")) {
     return (
       <div
         className="page-container"
@@ -347,26 +627,30 @@ function PaymentGateway({ onNavigate, room }) {
         </div>
       </div>
 
-      <Elements 
-        stripe={stripePromise} 
-        options={{ 
-          clientSecret,
-          appearance: {
-            theme: 'stripe',
-            variables: {
-              colorPrimary: '#4f46e5',
-              colorBackground: '#ffffff',
-              colorText: '#1e293b',
-              colorDanger: '#df1b41',
-              fontFamily: 'Inter, system-ui, sans-serif',
-              spacingUnit: '4px',
-              borderRadius: '8px',
+      {bookingData?.paymentMethod === "slip" ? (
+        <SlipUploadForm onNavigate={onNavigate} bookingData={bookingData} />
+      ) : (
+        <Elements
+          stripe={stripePromise}
+          options={{
+            clientSecret,
+            appearance: {
+              theme: "stripe",
+              variables: {
+                colorPrimary: "#4f46e5",
+                colorBackground: "#ffffff",
+                colorText: "#1e293b",
+                colorDanger: "#df1b41",
+                fontFamily: "Inter, system-ui, sans-serif",
+                spacingUnit: "4px",
+                borderRadius: "8px",
+              },
             },
-          }
-        }}
-      >
-        <CheckoutForm onNavigate={onNavigate} bookingData={bookingData} />
-      </Elements>
+          }}
+        >
+          <CheckoutForm onNavigate={onNavigate} bookingData={bookingData} />
+        </Elements>
+      )}
     </div>
   );
 }

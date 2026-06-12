@@ -37,6 +37,7 @@ function Booking({ onNavigate, room, searchCriteria }) {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card"); // "card" or "slip"
 
   // Update nights and guests when dates or room changes
   useEffect(() => {
@@ -150,7 +151,8 @@ function Booking({ onNavigate, room, searchCriteria }) {
         checkOut,
         guests: guests === "1-adult" ? "1 Adult" : guests === "2-adults" ? "2 Adults" : "2 Adults, 1 Child",
         bookingPhone: phone,
-        bookingAddress: address
+        bookingAddress: address,
+        paymentMethod: paymentMethod
       });
     } catch (err) {
       console.error(err);
@@ -283,12 +285,25 @@ function Booking({ onNavigate, room, searchCriteria }) {
           <div className="payment-select-box">
             <h3>Payment Options</h3>
             <div className="payment-option">
-              <input type="radio" name="payment" id="card" defaultChecked />
-              <label htmlFor="card">Credit Card 💳</label>
+              <input 
+                type="radio" 
+                name="payment" 
+                id="card" 
+                checked={paymentMethod === "card"} 
+                onChange={() => setPaymentMethod("card")}
+              />
+              <label htmlFor="card">Pay Online</label>
             </div>
-
-
-
+            <div className="payment-option" style={{ marginTop: "10px" }}>
+              <input 
+                type="radio" 
+                name="payment" 
+                id="slip" 
+                checked={paymentMethod === "slip"} 
+                onChange={() => setPaymentMethod("slip")}
+              />
+              <label htmlFor="slip">Slip Upload</label>
+            </div>
           </div>
         </div>
       </div>

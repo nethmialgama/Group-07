@@ -32,6 +32,7 @@ import AdminUsers from "./AdminUsers";
 import AdminUserView from "./AdminUserView";
 import AdminPaymentSettings from "./AdminPaymentSettings";
 import AdminRefunds from "./AdminRefunds";
+import AdminSlips from "./AdminSlips";
 import { clearStoredAuth, getStoredAuth, persistAuth } from "./auth";
 import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
@@ -385,6 +386,18 @@ function App() {
     else
       pageContent = (
         <AdminRefunds onNavigate={handleNavigation} onLogout={handleUserLogout} />
+      );
+  } else if (currentPage === "admin-slips") {
+    if (role !== "Admin")
+      pageContent = (
+        <AdminLogin
+          onNavigate={handleNavigation}
+          onAdminLogin={handleUserLogin}
+        />
+      );
+    else
+      pageContent = (
+        <AdminSlips onNavigate={handleNavigation} onLogout={handleUserLogout} />
       );
   } else if (currentPage === "login") {
     pageContent = (

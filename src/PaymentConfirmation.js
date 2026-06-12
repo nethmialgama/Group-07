@@ -84,8 +84,12 @@ function PaymentConfirmation({ onNavigate, room }) {
     <div className="page-container">
       {/* Header */}
       <div className="payment-header">
-        <h1>Booking Confirmed</h1>
-        <p>Your payment was successful and your room is reserved.</p>
+        <h1>{data.status === "Pending" ? "Booking Submitted" : "Booking Confirmed"}</h1>
+        <p>
+          {data.status === "Pending"
+            ? "Your bank slip has been uploaded successfully and is pending approval by our admin."
+            : "Your payment was successful and your room is reserved."}
+        </p>
       </div>
 
       {/* Step indicator — all done */}
@@ -120,7 +124,12 @@ function PaymentConfirmation({ onNavigate, room }) {
             </p>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="invoice-badge">PAID</div>
+            <div 
+              className="invoice-badge" 
+              style={data.status === "Pending" ? { backgroundColor: "#f59e0b", color: "#ffffff" } : {}}
+            >
+              {data.status === "Pending" ? "PENDING" : "PAID"}
+            </div>
             <p className="invoice-id">Invoice #{data.paymentId}</p>
             <p className="invoice-date">
               {new Date().toLocaleDateString("en-GB", {
@@ -161,9 +170,11 @@ function PaymentConfirmation({ onNavigate, room }) {
             )}
             <p className="invoice-value">
               <strong>Payment method:</strong>{" "}
-              {data.cardBrand
-                ? `${data.cardBrand} ····${data.cardLast4}`
-                : "Card"}
+              {data.status === "Pending"
+                ? "Bank Slip Upload"
+                : data.cardBrand
+                  ? `${data.cardBrand} ····${data.cardLast4}`
+                  : "Card"}
             </p>
           </div>
         </div>

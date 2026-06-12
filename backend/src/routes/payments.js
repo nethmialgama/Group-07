@@ -4,6 +4,8 @@ const pool = require("../db");
 const { authenticate } = require("../middleware/auth");
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const fs = require("fs");
+const path = require("path");
 const {
   buildInvoicePDF,
   sendInvoiceEmail,
@@ -14,6 +16,21 @@ const {
   getPolicyTable,
   roundMoney,
 } = require("../services/paymentPolicy");
+
+let paymentSlipColumnsEnsured = false;
+async function ensurePaymentSlipColumns() {
+  if (paymentSlipColumnsEnsured) return;
+  try {
+    const [columns] = await pool.query("SHOW COLUMNS FROM Payment LIKE 'slip_image'");
+    if (columns.length === 0) {
+      await pool.query("ALTER TABLE Payment ADD COLUMN slip_image VARCHAR(255) NULL AFTER reservationId");
+      console.log("Migration: Added slip_image column to Payment table.");
+    }
+    paymentSlipColumnsEnsured = true;
+  } catch (err) {
+    console.error("Migration: Failed to add slip_image column to Payment table", err);
+  }
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -151,7 +168,9 @@ router.get("/refund-quote/:reservationId", authenticate, async (req, res) => {
 
 // ── POST /api/payments ───────────────────────────────────────────────────────
 router.post("/", authenticate, async (req, res) => {
-  const { reservationId, amount, payment_method, status } = req.body;
+  await ensurePaymentSlipColumns();
+
+  const { reservationId, amount, payment_method, status, slip_image } = req.body;
   if (!reservationId || amount == null || !payment_method) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -175,28 +194,66 @@ router.post("/", authenticate, async (req, res) => {
     }
 
     const totalPrice = Number(reservation.total_price || 0);
-    const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
 
-    if (numericAmount + 0.0001 < advance.requiredAmount) {
-      return res.status(400).json({
-        error: "Insufficient advance payment for this booking window",
-        requiredAdvanceAmount: advance.requiredAmount,
-        requiredAdvanceRate: advance.rate,
-        daysBeforeCheckIn: advance.daysBeforeCheckIn,
-      });
+    // If Bank Slip payment, verify they are paying the full amount
+    if (payment_method === "Slip") {
+      if (numericAmount + 0.01 < totalPrice) {
+        return res.status(400).json({
+          error: "Bank Slip upload requires paying the full amount.",
+        });
+      }
+    } else {
+      // Otherwise enforce advance policy rules for other types (e.g. Card)
+      const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
+      if (numericAmount + 0.0001 < advance.requiredAmount) {
+        return res.status(400).json({
+          error: "Insufficient advance payment for this booking window",
+          requiredAdvanceAmount: advance.requiredAmount,
+          requiredAdvanceRate: advance.rate,
+          daysBeforeCheckIn: advance.daysBeforeCheckIn,
+        });
+      }
+    }
+
+    // Default status: Pending for Bank Slips, Completed for Cards
+    const defaultStatus = payment_method === "Slip" ? "Pending" : "Completed";
+    const finalStatus = status || defaultStatus;
+
+    // Handle base64 slip upload
+    let slipImageFilename = null;
+    if (payment_method === "Slip" && slip_image) {
+      try {
+        const uploadsDir = path.join(__dirname, "../../uploads");
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const matches = slip_image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const imageBuffer = Buffer.from(matches[2], "base64");
+          const fileExtension = matches[1].split("/")[1] || "png";
+          const filename = `slip-${reservationId}-${Date.now()}.${fileExtension}`;
+          fs.writeFileSync(path.join(uploadsDir, filename), imageBuffer);
+          slipImageFilename = filename;
+        }
+      } catch (err) {
+        console.error("Failed to save bank slip upload:", err);
+      }
     }
 
     const [result] = await pool.query(
-      "INSERT INTO Payment (amount, date, payment_method, status, reservationId) VALUES (?, NOW(), ?, ?, ?)",
+      "INSERT INTO Payment (amount, date, payment_method, status, reservationId, slip_image) VALUES (?, NOW(), ?, ?, ?, ?)",
       [
         roundMoney(numericAmount),
         payment_method,
-        status || "Completed",
+        finalStatus,
         reservationId,
+        slipImageFilename,
       ],
     );
 
-    if ((status || "Completed") === "Completed") {
+    // Only update reservation status if payment is completed
+    if (finalStatus === "Completed") {
       const remainingAmount = totalPrice - numericAmount;
       const nextReservationStatus =
         remainingAmount <= 0.01 ? "Confirmed" : "PartiallyPaid";
@@ -206,6 +263,7 @@ router.post("/", authenticate, async (req, res) => {
       );
     }
 
+    const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
     res.status(201).json({
       paymentId: result.insertId,
       requiredAdvanceAmount: advance.requiredAmount,

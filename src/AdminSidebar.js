@@ -47,6 +47,15 @@ function AdminSidebar({ activePage, onNavigate }) {
           <img src="/images/refunds.png" alt="Refunds" className="menu-icon" />
           Refund Management
         </li>
+
+        {/* SLIPS */}
+        <li
+          className={activePage === "slips" ? "active" : ""}
+          onClick={() => onNavigate("admin-slips")}
+        >
+          <img src="/images/bookings.png" alt="Slips" className="menu-icon" style={{ filter: "hue-rotate(90deg)" }} />
+          Slip Verification
+        </li>
       </ul>
     </div>
   );
