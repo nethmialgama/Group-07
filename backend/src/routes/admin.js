@@ -467,7 +467,7 @@ router.get("/pending-slips", async (req, res) => {
        JOIN Reservation r  ON r.reservationId = p.reservationId
        JOIN Guest g         ON g.guestId       = r.guestId
        JOIN Room rm         ON rm.roomId        = r.roomId
-       WHERE p.payment_method = 'Slip'
+       WHERE p.payment_method = 'Slip' AND p.status = 'Pending'
        ORDER BY p.date DESC`
     );
     res.json(rows);
