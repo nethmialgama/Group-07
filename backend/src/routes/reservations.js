@@ -72,7 +72,7 @@ router.post("/", authenticate, async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO Reservation (checkIn, checkOut, booking_date, status, total_price, guestId, roomId, staffId)
-       VALUES (?, ?, NOW(), 'Confirmed', ?, ?, ?, ?)`,
+       VALUES (?, ?, NOW(), 'Pending', ?, ?, ?, ?)`,
       [checkIn, checkOut, totalPrice, guestId, roomId, staffId || null],
     );
 
