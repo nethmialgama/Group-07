@@ -587,7 +587,7 @@ function PaymentGateway({ onNavigate, room }) {
   }
 
   // Step 1: CAPTCHA
-  if (!captchaPassed) {
+  if (!captchaPassed && bookingData?.paymentMethod !== "slip") {
     return <CaptchaStep onVerified={() => setCaptchaPassed(true)} />;
   }
 
