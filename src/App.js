@@ -32,9 +32,10 @@ import AdminUsers from "./AdminUsers";
 import AdminUserView from "./AdminUserView";
 import AdminPaymentSettings from "./AdminPaymentSettings";
 import AdminRefunds from "./AdminRefunds";
-import { clearStoredAuth, getStoredAuth } from "./auth";
+import { clearStoredAuth, getStoredAuth, persistAuth } from "./auth";
 import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
+import WelcomeBotModal from "./WelcomeBotModal";
 
 const getRoomImage = (roomType = "", idx = 0) => {
   const normalized = String(roomType).trim().toLowerCase();
@@ -70,6 +71,8 @@ function App() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [postLoginTarget, setPostLoginTarget] = useState(null);
+  const [showWelcomeBot, setShowWelcomeBot] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   const initialAuth = getStoredAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialAuth.token);
@@ -257,6 +260,15 @@ function App() {
     const freshAuth = getStoredAuth();
     setIsLoggedIn(true);
     setRole(userData?.role || freshAuth.role || "Guest");
+
+    // Check if this is the first login for a guest
+    if (userData?.isFirstLogin) {
+      setShowWelcomeBot(true);
+      // Clear isFirstLogin so it doesn't pop up again on page reloads
+      const updatedUser = { ...userData, isFirstLogin: false };
+      const rememberMe = !!localStorage.getItem("sh_remember_user_identifier");
+      persistAuth(updatedUser, { rememberMe });
+    }
 
     if (postLoginTarget) {
       const target = postLoginTarget;
@@ -736,6 +748,10 @@ function App() {
     );
   }
 
+  const currentAuth = getStoredAuth();
+  const displayName =
+    String(currentAuth?.user?.name || currentAuth?.user?.fullName || "").trim() || "User";
+
   return (
     <>
       {pageContent}
@@ -748,6 +764,17 @@ function App() {
           if (criteria.checkIn) setHomeCheckIn(criteria.checkIn);
           if (criteria.checkOut) setHomeCheckOut(criteria.checkOut);
           if (criteria.guestSelection) setHomeGuests(criteria.guestSelection);
+        }}
+        open={isChatbotOpen}
+        setOpen={setIsChatbotOpen}
+      />
+      <WelcomeBotModal 
+        isOpen={showWelcomeBot}
+        username={displayName}
+        onClose={() => setShowWelcomeBot(false)}
+        onStartChat={() => {
+          setShowWelcomeBot(false);
+          setIsChatbotOpen(true);
         }}
       />
     </>

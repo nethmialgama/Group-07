@@ -18,8 +18,16 @@ const getRoomImage = (roomType = "", idx = 0) => {
   return "/images/single1.png";
 };
 
-export default function Chatbot({ onNavigate, setSelectedRoom, setRoomSearchCriteria }) {
-  const [open, setOpen] = useState(false);
+export default function Chatbot({
+  onNavigate,
+  setSelectedRoom,
+  setRoomSearchCriteria,
+  open: controlledOpen,
+  setOpen: controlledSetOpen,
+}) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : localOpen;
+  const setOpen = controlledSetOpen !== undefined ? controlledSetOpen : setLocalOpen;
   const [sessionId] = useState(() => {
     let id = localStorage.getItem("chat_session_id");
     if (!id) {

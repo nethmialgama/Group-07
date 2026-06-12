@@ -1,0 +1,153 @@
+/* src/WelcomeBotModal.css */
+
+.welcome-bot-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.7); /* Deep dark blue overlay */
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999; /* Ensure it stays above everything, including chatbots and menus */
+  opacity: 0;
+  animation: welcomeFadeIn 0.35s ease-out forwards;
+}
+
+.welcome-bot-container {
+  position: relative;
+  width: 90%;
+  max-width: 700px;
+  aspect-ratio: 1389 / 1152; /* Exact aspect ratio of bot1.png */
+  background: transparent;
+  transform: scale(0.9);
+  opacity: 0;
+  animation: welcomeScaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s forwards;
+}
+
+.welcome-bot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.5));
+}
+
+/* 
+  Coordinate Math:
+  Full image size: 1389 x 1152 px
+  Chatbox bounds:
+  X: 92px to 808px
+  - Left = 92 / 1389 = 6.623%
+  - Width = (808 - 92) / 1389 = 51.548%
+  Y: 108px to 435px
+  - Top = 108 / 1152 = 9.375%
+  - Height = (435 - 108) / 1152 = 28.385%
+*/
+.welcome-bot-chatbox {
+  position: absolute;
+  left: 6.623%;
+  top: 9.375%;
+  width: 51.548%;
+  height: 28.385%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 3% 4% 2.5% 4%; /* Percent-based padding scales with screen/modal size */
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+.welcome-bot-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.welcome-bot-title {
+  color: #1e293b; /* Slate 800 */
+  font-weight: 700;
+  font-size: clamp(13px, 2.3vw, 22px);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.welcome-bot-text {
+  color: #475569; /* Slate 600 */
+  font-size: clamp(10px, 1.55vw, 15px);
+  line-height: 1.45;
+  margin: 0;
+  font-weight: 500;
+}
+
+.welcome-bot-btn {
+  background: linear-gradient(135deg, #c9a84c, #a88530); /* Gold brand color gradient */
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: clamp(9px, 1.45vw, 13px);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-bot-btn:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px rgba(201, 168, 76, 0.5);
+  background: linear-gradient(135deg, #d8b75c, #ba953b);
+}
+
+.welcome-bot-btn:active {
+  transform: translateY(0.5px);
+}
+
+/* Close 'X' Button on top-right of modal */
+.welcome-bot-close-btn {
+  position: absolute;
+  top: 1%;
+  right: 1%;
+  background: #ffffff;
+  color: #334155;
+  border: none;
+  width: clamp(26px, 4vw, 36px);
+  height: clamp(26px, 4vw, 36px);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: clamp(14px, 2.5vw, 20px);
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s ease;
+  z-index: 10;
+}
+
+.welcome-bot-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: scale(1.08);
+}
+
+/* Animations */
+@keyframes welcomeFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes welcomeScaleUp {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

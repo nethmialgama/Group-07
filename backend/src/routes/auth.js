@@ -7,6 +7,7 @@ const { authenticate, getJwtSecret } = require("../middleware/auth");
 
 let guestPasswordColumnEnsured = false;
 let guestProfileColumnsEnsured = false;
+let guestFirstLoginColumnEnsured = false;
 
 async function ensureGuestPasswordColumn() {
   if (guestPasswordColumnEnsured) return;
@@ -41,6 +42,21 @@ async function ensureGuestProfileColumns() {
   }
 
   guestProfileColumnsEnsured = true;
+}
+
+async function ensureGuestFirstLoginColumn() {
+  if (guestFirstLoginColumnEnsured) return;
+
+  const [columns] = await pool.query(
+    "SHOW COLUMNS FROM Guest LIKE 'is_first_login'",
+  );
+  if (columns.length === 0) {
+    await pool.query(
+      "ALTER TABLE Guest ADD COLUMN is_first_login TINYINT(1) DEFAULT 1 AFTER loyalty_points",
+    );
+  }
+
+  guestFirstLoginColumnEnsured = true;
 }
 
 function hashPassword(password) {
@@ -115,6 +131,20 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
+    await ensureGuestFirstLoginColumn();
+    let isFirstLogin = false;
+    const [freshGuestRows] = await pool.query(
+      "SELECT is_first_login FROM Guest WHERE guestId = ?",
+      [guest.guestId],
+    );
+    if (freshGuestRows.length > 0 && freshGuestRows[0].is_first_login === 1) {
+      isFirstLogin = true;
+      await pool.query(
+        "UPDATE Guest SET is_first_login = 0 WHERE guestId = ?",
+        [guest.guestId],
+      );
+    }
+
     const token = createToken(
       {
         userType: "guest",
@@ -133,6 +163,7 @@ router.post("/login", async (req, res) => {
       name: guest.name,
       role: "Guest",
       email: guest.email,
+      isFirstLogin,
     });
   } catch (err) {
     console.error(err);
@@ -162,6 +193,20 @@ router.post("/guest-login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    await ensureGuestFirstLoginColumn();
+    let isFirstLogin = false;
+    const [freshGuestRows] = await pool.query(
+      "SELECT is_first_login FROM Guest WHERE guestId = ?",
+      [guest.guestId],
+    );
+    if (freshGuestRows.length > 0 && freshGuestRows[0].is_first_login === 1) {
+      isFirstLogin = true;
+      await pool.query(
+        "UPDATE Guest SET is_first_login = 0 WHERE guestId = ?",
+        [guest.guestId],
+      );
+    }
+
     const token = createToken(
       {
         userType: "guest",
@@ -180,6 +225,7 @@ router.post("/guest-login", async (req, res) => {
       name: guest.name,
       email: guest.email,
       role: "Guest",
+      isFirstLogin,
     });
   } catch (err) {
     console.error(err);
@@ -200,6 +246,7 @@ router.post("/signup", async (req, res) => {
 
   try {
     await ensureGuestPasswordColumn();
+    await ensureGuestFirstLoginColumn();
 
     // Check if email already exists
     const [existingGuest] = await pool.query(
