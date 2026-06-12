@@ -53,7 +53,7 @@ function AdminSidebar({ activePage, onNavigate }) {
           className={activePage === "slips" ? "active" : ""}
           onClick={() => onNavigate("admin-slips")}
         >
-          <img src="/images/bookings.png" alt="Slips" className="menu-icon" style={{ filter: "hue-rotate(90deg)" }} />
+          <img src="/images/slip.png" alt="Slips" className="menu-icon" />
           Slip Verification
         </li>
       </ul>
