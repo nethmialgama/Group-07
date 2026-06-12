@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticate, requireAdmin } = require("../middleware/auth");
+const { cleanupExpiredReservations } = require("../utils/cleanup");
 
 let paymentGatewayTableEnsured = false;
 
@@ -23,6 +24,7 @@ router.use(authenticate, requireAdmin);
 // ─── GET /api/admin/stats ─────────────────────────────────────────────────────
 router.get("/stats", async (req, res) => {
   try {
+    await cleanupExpiredReservations();
     const [[rooms]] = await pool.query("SELECT COUNT(*) AS count FROM Room");
     const [[bookings]] = await pool.query(
       "SELECT COUNT(*) AS count FROM Reservation",
@@ -458,6 +460,7 @@ router.get("/revenue-by-room-type", async (req, res) => {
 // GET /api/admin/pending-slips
 router.get("/pending-slips", async (req, res) => {
   try {
+    await cleanupExpiredReservations();
     const [rows] = await pool.query(
       `SELECT p.paymentId, p.amount, p.date, p.payment_method, p.status, p.slip_image,
               r.reservationId, r.checkIn, r.checkOut, r.total_price,

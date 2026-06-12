@@ -36,7 +36,7 @@ async function ensurePaymentSlipColumns() {
 
 async function getReservationById(reservationId) {
   const [rows] = await pool.query(
-    "SELECT reservationId, guestId, checkIn, total_price FROM Reservation WHERE reservationId = ?",
+    "SELECT reservationId, guestId, checkIn, total_price, status FROM Reservation WHERE reservationId = ?",
     [reservationId],
   );
   return rows.length ? rows[0] : null;
@@ -179,6 +179,11 @@ router.post("/", authenticate, async (req, res) => {
     const reservation = await getReservationById(reservationId);
     if (!reservation) {
       return res.status(404).json({ error: "Reservation not found" });
+    }
+    if (reservation.status === "Cancelled") {
+      return res
+        .status(400)
+        .json({ error: "Your booking session has expired. Please book again." });
     }
     if (!canAccessReservation(req, reservation)) {
       return res
