@@ -148,7 +148,9 @@ function Booking({ onNavigate, room, searchCriteria }) {
         totalPrice: data.totalPrice,
         checkIn,
         checkOut,
-        guests: guests === "1-adult" ? "1 Adult" : guests === "2-adults" ? "2 Adults" : "2 Adults, 1 Child"
+        guests: guests === "1-adult" ? "1 Adult" : guests === "2-adults" ? "2 Adults" : "2 Adults, 1 Child",
+        bookingPhone: phone,
+        bookingAddress: address
       });
     } catch (err) {
       console.error(err);
@@ -286,10 +288,7 @@ function Booking({ onNavigate, room, searchCriteria }) {
             </div>
 
 
-            <div className="policy-check">
-              <input type="checkbox" />
-              <label>I agree to cancellation and refund policy</label>
-            </div>
+
           </div>
         </div>
       </div>

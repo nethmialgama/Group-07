@@ -12,8 +12,8 @@ function Payment({ onNavigate, room }) {
   // ── ALL HOOKS AFTER selectedRoom ──────────────────────────────────────────
   const [fullName, setFullName] = useState(storedAuth.name || "");
   const [email, setEmail] = useState(storedAuth.email || "");
-  const [phone, setPhone] = useState(storedAuth.phone || "");
-  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState(selectedRoom?.bookingPhone || storedAuth.phone || "");
+  const [address, setAddress] = useState(selectedRoom?.bookingAddress || "");
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [errors, setErrors] = useState({});
 
