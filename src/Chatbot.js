@@ -148,9 +148,7 @@ export default function Chatbot({
         onClick={() => setOpen((o) => !o)}
         aria-label="Open chat bot"
       >
-        <span role="img" aria-label="chatbot">
-          💬
-        </span>
+        <img src="/images/bot2.png" alt="Chatbot" />
       </button>
       {open && (
         <div className="chatbot-modal">
