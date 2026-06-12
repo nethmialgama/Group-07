@@ -8,10 +8,18 @@ const getRoomImage = (roomType = "", idx = 0) => {
     return singleImages[idx % singleImages.length];
   }
   if (normalized.includes("double")) {
-    const doubleImages = ["/images/double1.png", "/images/double2.png", "/images/double3.png"];
+    const doubleImages = [
+      "/images/double1.png",
+      "/images/double2.png",
+      "/images/double3.png",
+    ];
     return doubleImages[idx % doubleImages.length];
   }
-  if (normalized.includes("trible") || normalized.includes("triple") || normalized.includes("family")) {
+  if (
+    normalized.includes("trible") ||
+    normalized.includes("triple") ||
+    normalized.includes("family")
+  ) {
     const tribleImages = ["/images/trible1.png", "/images/trible2.png"];
     return tribleImages[idx % tribleImages.length];
   }
@@ -27,7 +35,8 @@ export default function Chatbot({
 }) {
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : localOpen;
-  const setOpen = controlledSetOpen !== undefined ? controlledSetOpen : setLocalOpen;
+  const setOpen =
+    controlledSetOpen !== undefined ? controlledSetOpen : setLocalOpen;
   const [sessionId] = useState(() => {
     let id = localStorage.getItem("chat_session_id");
     if (!id) {
@@ -46,6 +55,8 @@ export default function Chatbot({
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
 
+  const getRecentHistory = (items = []) => items.slice(-6);
+
   useEffect(() => {
     if (open && chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -63,33 +74,36 @@ export default function Chatbot({
       const res = await fetch("http://localhost:5000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: input,
-          history: messages,
-          sessionId: sessionId 
+          history: getRecentHistory(messages),
+          sessionId: sessionId,
         }),
       });
       const data = await res.json();
-      
+
       setMessages((msgs) => [...msgs, { from: "bot", text: data.reply }]);
 
       // Handle Redirection for Booking
       if (data.redirect === "/booking" && data.bookingDetails) {
         const { checkIn, checkOut, roomType, guests } = data.bookingDetails;
-        
+
         // Determine capacity based on guests or room type
-        const capacityMap = { "single": 1, "double": 2, "triple": 3, "family": 3 };
+        const capacityMap = { single: 1, double: 2, triple: 3, family: 3 };
         const capacity = guests || capacityMap[roomType.toLowerCase()] || 2;
-        
+
         try {
           // Fetch real available rooms for these dates
-          const roomRes = await fetch(`http://localhost:5000/api/rooms?checkIn=${checkIn}&checkOut=${checkOut}&capacity=${capacity}`);
+          const roomRes = await fetch(
+            `http://localhost:5000/api/rooms?checkIn=${checkIn}&checkOut=${checkOut}&capacity=${capacity}`,
+          );
           const availableRooms = await roomRes.json();
-          
+
           // Find a room that matches the requested type
-          const matchingRoom = availableRooms.find(r => 
-            r.roomType.toLowerCase().includes(roomType.toLowerCase()) || 
-            roomType.toLowerCase().includes(r.roomType.toLowerCase())
+          const matchingRoom = availableRooms.find(
+            (r) =>
+              r.roomType.toLowerCase().includes(roomType.toLowerCase()) ||
+              roomType.toLowerCase().includes(r.roomType.toLowerCase()),
           );
 
           if (matchingRoom) {
@@ -98,19 +112,26 @@ export default function Chatbot({
               setRoomSearchCriteria({
                 checkIn,
                 checkOut,
-                guestSelection: capacity === 1 ? "1-adult" : (capacity === 2 ? "2-adults" : "2-adults-1-kid"),
-                capacity: capacity
+                guestSelection:
+                  capacity === 1
+                    ? "1-adult"
+                    : capacity === 2
+                      ? "2-adults"
+                      : "2-adults-1-kid",
+                capacity: capacity,
               });
-              
+
               // 2. Set the actual available room details
               setSelectedRoom({
                 roomId: matchingRoom.roomId,
                 title: `${matchingRoom.roomType} Room`,
-                price: matchingRoom.roomPrice, 
+                price: matchingRoom.roomPrice,
                 image: getRoomImage(matchingRoom.roomType, matchingRoom.roomId),
-                tags: (matchingRoom.amenities || "Wi-Fi, AC").split(",").map(t => t.trim()),
+                tags: (matchingRoom.amenities || "Wi-Fi, AC")
+                  .split(",")
+                  .map((t) => t.trim()),
                 capacity: matchingRoom.capacity,
-                rating: 4.5
+                rating: 4.5,
               });
 
               // 3. Navigate to booking page
@@ -118,10 +139,13 @@ export default function Chatbot({
             }, 1000);
           } else {
             // Room not available for these dates
-            setMessages((msgs) => [...msgs, { 
-              from: "bot", 
-              text: `I checked our system, and unfortunately, no ${roomType} rooms are available from ${checkIn} to ${checkOut}. Would you like to check other dates or a different room type?` 
-            }]);
+            setMessages((msgs) => [
+              ...msgs,
+              {
+                from: "bot",
+                text: `I checked our system, and unfortunately, no ${roomType} rooms are available from ${checkIn} to ${checkOut}. Would you like to check other dates or a different room type?`,
+              },
+            ]);
           }
         } catch (err) {
           console.error("Redirection error:", err);

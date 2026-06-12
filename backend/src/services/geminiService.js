@@ -11,6 +11,50 @@ const ai = new GoogleGenAI({
 const MEMORY_DIR = path.join(__dirname, "../../temp_memory");
 if (!fs.existsSync(MEMORY_DIR)) fs.mkdirSync(MEMORY_DIR);
 
+const MAX_HISTORY_MESSAGES = 6;
+
+function normalizeHistory(history = []) {
+  return history.slice(-MAX_HISTORY_MESSAGES);
+}
+
+function extractResponseText(response) {
+  if (response?.text && typeof response.text === "string") {
+    return response.text;
+  }
+
+  if (typeof response?.text === "function") {
+    return response.text();
+  }
+
+  if (response?.candidates?.[0]?.content?.parts?.length) {
+    return response.candidates[0].content.parts
+      .map((part) => part.text || "")
+      .join("");
+  }
+
+  return "";
+}
+
+async function generateChatResponse(prompt) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 const handleChat = async (message, history = [], sessionId = "default") => {
   try {
     const memoryPath = path.join(MEMORY_DIR, `${sessionId}.json`);
@@ -20,10 +64,17 @@ const handleChat = async (message, history = [], sessionId = "default") => {
     }
 
     // 1️⃣ Fetch context
-    const [rooms] = await db.query('SELECT roomType, MIN(roomPrice) as minPrice FROM Room WHERE roomPrice > 0 GROUP BY roomType');
-    const [availability] = await db.query('SELECT roomType, COUNT(*) as count FROM Room WHERE status = "Available" GROUP BY roomType');
+    const [rooms] = await db.query(
+      "SELECT roomType, MIN(roomPrice) as minPrice FROM Room WHERE roomPrice > 0 GROUP BY roomType",
+    );
+    const [availability] = await db.query(
+      'SELECT roomType, COUNT(*) as count FROM Room WHERE status = "Available" GROUP BY roomType',
+    );
 
-    const chatHistory = history.map(m => `${m.from === 'bot' ? 'Assistant' : 'User'}: ${m.text}`).join('\n');
+    const recentHistory = normalizeHistory(history);
+    const chatHistory = recentHistory
+      .map((m) => `${m.from === "bot" ? "Assistant" : "User"}: ${m.text}`)
+      .join("\n");
 
     const today = new Date().toISOString().split("T")[0];
 
@@ -37,8 +88,8 @@ const handleChat = async (message, history = [], sessionId = "default") => {
       ${JSON.stringify(userDetails)}
 
       HOTEL INFO:
-      Rooms: ${rooms.map(r => `${r.roomType}($${Math.floor(r.minPrice)})`).join(', ')}
-      Availability: ${availability.map(a => `${a.roomType}: ${a.count} left`).join(', ')}
+      Rooms: ${rooms.map((r) => `${r.roomType}($${Math.floor(r.minPrice)})`).join(", ")}
+      Availability: ${availability.map((a) => `${a.roomType}: ${a.count} left`).join(", ")}
 
       CONVERSATION:
       ${chatHistory}
@@ -61,17 +112,20 @@ const handleChat = async (message, history = [], sessionId = "default") => {
       Return ONLY the JSON.
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: systemPrompt,
-    });
+    const response = await generateChatResponse(systemPrompt);
 
     let result;
     try {
-      let text = response.text.replace(/```json|```/gi, "").trim();
+      const text = extractResponseText(response)
+        .replace(/```json|```/gi, "")
+        .trim();
       result = JSON.parse(text);
     } catch {
-      result = { reply: response.text };
+      result = {
+        reply:
+          extractResponseText(response) ||
+          "I'm here to help, but I couldn't format that response properly.",
+      };
     }
 
     // Save memory if provided
@@ -82,12 +136,12 @@ const handleChat = async (message, history = [], sessionId = "default") => {
 
     return result;
   } catch (err) {
-    console.error(err);
-    return { reply: "Sorry, I'm having trouble. Please try again later." };
+    console.error("Gemini chat failed:", err?.message || err, err?.stack || "");
+    return {
+      reply:
+        "Sorry, I'm having trouble connecting to the AI assistant right now. Please try again in a moment.",
+    };
   }
 };
-
-
-
 
 module.exports = { handleChat };
