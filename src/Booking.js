@@ -1,5 +1,5 @@
 // src/Booking.js
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { getAuthHeaders, getStoredAuth } from "./auth";
 import { showToast } from "./toast";
 
@@ -14,66 +14,42 @@ function Booking({ onNavigate, room, searchCriteria }) {
     tags: ["Wi-Fi", "AC", "Breakfast"], // Note: Rooms.js uses 'tags', mock used 'facilities'
   };
 
-  const [checkIn, setCheckIn] = useState(searchCriteria?.checkIn || new Date(Date.now() + 86400000).toISOString().split("T")[0]);
-  const [checkOut, setCheckOut] = useState(searchCriteria?.checkOut || new Date(Date.now() + 172800000).toISOString().split("T")[0]);
-  
-  // Sync with searchCriteria if it changes (e.g. from chatbot)
-  useEffect(() => {
-    if (searchCriteria?.checkIn) setCheckIn(searchCriteria.checkIn);
-    if (searchCriteria?.checkOut) setCheckOut(searchCriteria.checkOut);
-  }, [searchCriteria]);
-
-  // Set guests based on room capacity
-  const getGuestSelectionByCapacity = (cap) => {
-    if (cap === 1) return "1-adult";
-    if (cap === 2) return "2-adults";
-    if (cap === 3) return "2-adults-1-kid";
-    return "2-adults";
+  const calculateNights = (inD, outD) => {
+    if (!inD || !outD) return 1;
+    const diff = Math.ceil((new Date(outD) - new Date(inD)) / (24 * 60 * 60 * 1000));
+    return diff > 0 ? diff : 1;
   };
 
-  const [guests, setGuests] = useState(getGuestSelectionByCapacity(selectedRoom.capacity));
-  
-  const [nights, setNights] = useState(1);
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card"); // "card" or "slip"
+  const [checkIn, setCheckIn] = useState(searchCriteria?.checkIn || "");
+  const [checkOut, setCheckOut] = useState(searchCriteria?.checkOut || "");
+  const [nights, setNights] = useState(() =>
+    calculateNights(searchCriteria?.checkIn, searchCriteria?.checkOut)
+  );
 
-  // Update nights and guests when dates or room changes
-  useEffect(() => {
-    if (checkIn && checkOut) {
-      const inDate = new Date(checkIn);
-      const outDate = new Date(checkOut);
-      const diff = Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000));
-      setNights(diff > 0 ? diff : 1);
+  const getGuestOptions = () => {
+    const capacity = Number(selectedRoom.capacity || 2);
+    const options = [];
+    if (capacity >= 1) options.push("1 Adult");
+    if (capacity >= 2) options.push("2 Adults");
+    if (capacity >= 3) options.push("2 Adults, 1 Child");
+    return options;
+  };
+
+  const [guests, setGuests] = useState(() => {
+    const capacity = Number(selectedRoom.capacity || 2);
+    if (searchCriteria?.guestSelection) {
+      if (searchCriteria.guestSelection === "1-adult" && capacity >= 1) return "1 Adult";
+      if (searchCriteria.guestSelection === "2-adults" && capacity >= 2) return "2 Adults";
+      if (searchCriteria.guestSelection === "2-adults-1-kid" && capacity >= 3) return "2 Adults, 1 Child";
     }
-  }, [checkIn, checkOut]);
+    return capacity === 1 ? "1 Adult" : "2 Adults";
+  });
 
-  useEffect(() => {
-    setGuests(getGuestSelectionByCapacity(selectedRoom.capacity));
-  }, [selectedRoom.capacity]);
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/auth/profile", {
-          headers: { ...getAuthHeaders() },
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setPhone(data.phone || "");
-          setAddress(data.address || "");
-        }
-      } catch (err) {
-        console.error("Failed to load profile for autofill", err);
-      }
-    };
-    loadProfile();
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 2. Fix Price Calculation: Remove commas from "6,000" and turn into number
   // "6,000" -> "6000" -> 6000
-  const pricePerNight = parseInt(String(selectedRoom.price).replace(/,/g, ""), 10);
+  const pricePerNight = parseInt(selectedRoom.price.replace(/,/g, ""), 10);
 
   const roomTotal = pricePerNight * nights;
   const taxes = roomTotal * 0.1;
@@ -83,16 +59,6 @@ function Booking({ onNavigate, room, searchCriteria }) {
   const handleConfirmBooking = async () => {
     const auth = getStoredAuth();
     const user = auth.user;
-
-    const today = new Date().toISOString().split("T")[0];
-    if (checkIn < today) {
-      showToast("Past dates are not allowed for check-in.", "warning");
-      return;
-    }
-    if (checkOut <= checkIn) {
-      showToast("Check-out date must be after check-in.", "warning");
-      return;
-    }
 
     if (!checkIn || !checkOut) {
       showToast("Please select check-in and check-out dates", "warning");
@@ -106,18 +72,6 @@ function Booking({ onNavigate, room, searchCriteria }) {
 
     if (!selectedRoom.roomId) {
       showToast("Please book a room from the available rooms page", "warning");
-      return;
-    }
-
-    // Validation for phone and address
-    const cleanPhone = phone.replace(/\s/g, "");
-    if (!cleanPhone || cleanPhone.length !== 10 || !/^\d+$/.test(cleanPhone)) {
-      showToast("Mobile number must be exactly 10 digits", "warning");
-      return;
-    }
-
-    if (!address || address.length < 8) {
-      showToast("Address must be at least 8 characters long", "warning");
       return;
     }
 
@@ -149,10 +103,6 @@ function Booking({ onNavigate, room, searchCriteria }) {
         totalPrice: data.totalPrice,
         checkIn,
         checkOut,
-        guests: guests === "1-adult" ? "1 Adult" : guests === "2-adults" ? "2 Adults" : "2 Adults, 1 Child",
-        bookingPhone: phone,
-        bookingAddress: address,
-        paymentMethod: paymentMethod
       });
     } catch (err) {
       console.error(err);
@@ -161,8 +111,6 @@ function Booking({ onNavigate, room, searchCriteria }) {
       setIsSubmitting(false);
     }
   };
-
-  const todayIso = new Date().toISOString().split("T")[0];
 
   return (
     <div className="page-container">
@@ -194,13 +142,19 @@ function Booking({ onNavigate, room, searchCriteria }) {
             <label>Check-in Date</label>
             <input
               type="date"
-              min={todayIso}
               value={checkIn}
+              disabled={!!searchCriteria?.checkIn}
               onChange={(e) => {
-                const nextCheckIn = e.target.value;
-                setCheckIn(nextCheckIn);
-                if (checkOut && checkOut <= nextCheckIn) {
-                  setCheckOut("");
+                const value = e.target.value;
+                setCheckIn(value);
+                if (value && checkOut) {
+                  const inDate = new Date(value);
+                  const outDate = new Date(checkOut);
+                  const diff = Math.max(
+                    1,
+                    Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000)),
+                  );
+                  setNights(diff);
                 }
               }}
             />
@@ -208,36 +162,35 @@ function Booking({ onNavigate, room, searchCriteria }) {
             <label>Check-out Date</label>
             <input
               type="date"
-              min={checkIn || todayIso}
               value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
-            />
-
-            <label>Guests</label>
-            <select value={guests} disabled className="readonly-input">
-              <option value="1-adult">1 Adult</option>
-              <option value="2-adults">2 Adults</option>
-              <option value="2-adults-1-kid">2 Adults, 1 Child</option>
-            </select>
-
-            <label>Mobile Number</label>
-            <input
-              type="text"
-              placeholder="e.g. 0771234567"
-              value={phone}
+              disabled={!!searchCriteria?.checkOut}
               onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, "");
-                if (val.length <= 10) setPhone(val);
+                const value = e.target.value;
+                setCheckOut(value);
+                if (checkIn && value) {
+                  const inDate = new Date(checkIn);
+                  const outDate = new Date(value);
+                  const diff = Math.max(
+                    1,
+                    Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000)),
+                  );
+                  setNights(diff);
+                }
               }}
             />
 
-            <label>Address</label>
-            <input
-              type="text"
-              placeholder="Your home address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
+            <label>Guests</label>
+            <select
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+              disabled={!!searchCriteria?.guestSelection}
+            >
+              {getGuestOptions().map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
 
             <label>Special Requests</label>
             <textarea placeholder="Any specific preferences?"></textarea>
@@ -285,24 +238,14 @@ function Booking({ onNavigate, room, searchCriteria }) {
           <div className="payment-select-box">
             <h3>Payment Options</h3>
             <div className="payment-option">
-              <input 
-                type="radio" 
-                name="payment" 
-                id="card" 
-                checked={paymentMethod === "card"} 
-                onChange={() => setPaymentMethod("card")}
-              />
-              <label htmlFor="card">Pay Online</label>
+              <input type="radio" name="payment" id="card" defaultChecked />
+              <label htmlFor="card">Credit Card 💳</label>
             </div>
-            <div className="payment-option" style={{ marginTop: "10px" }}>
-              <input 
-                type="radio" 
-                name="payment" 
-                id="slip" 
-                checked={paymentMethod === "slip"} 
-                onChange={() => setPaymentMethod("slip")}
-              />
-              <label htmlFor="slip">Slip Upload</label>
+
+
+            <div className="policy-check">
+              <input type="checkbox" />
+              <label>I agree to cancellation and refund policy</label>
             </div>
           </div>
         </div>
