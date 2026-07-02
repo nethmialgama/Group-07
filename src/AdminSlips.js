@@ -6,7 +6,9 @@ import { showToast } from "./toast";
 
 function AdminSlips({ onNavigate, onLogout }) {
   const [slips, setSlips] = useState([]);
+  const [historySlips, setHistorySlips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null); // For fullscreen preview modal
   const hasFetched = useRef(false);
@@ -28,10 +30,27 @@ function AdminSlips({ onNavigate, onLogout }) {
     }
   };
 
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/slip-history", {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load slip history");
+      setHistorySlips(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
     loadSlips();
+    loadHistory();
   }, []);
 
   const handleConfirmSlip = async (paymentId, action) => {
@@ -51,6 +70,7 @@ function AdminSlips({ onNavigate, onLogout }) {
       // Remove from list or change status
       setSlips((prev) => prev.filter((s) => s.paymentId !== paymentId));
       showToast(`Slip payment ${action}ed successfully!`, "success");
+      loadHistory();
     } catch (err) {
       console.error(err);
       showToast(err.message, "error");
@@ -159,6 +179,79 @@ function AdminSlips({ onNavigate, onLogout }) {
                           Reject
                         </button>
                       </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Verification History Section */}
+        <div className="admin-header-row" style={{ marginTop: "40px" }}>
+          <h2>Verification History</h2>
+        </div>
+
+        {historyLoading ? (
+          <p style={{ color: "#888", padding: "20px" }}>Loading slip history...</p>
+        ) : historySlips.length === 0 ? (
+          <div className="empty-refunds" style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+            <p style={{ color: "#64748b", margin: 0, fontSize: "16px" }}>No slip verification history found.</p>
+          </div>
+        ) : (
+          <div className="table-card">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Order/Payment ID</th>
+                  <th>Guest</th>
+                  <th>Room</th>
+                  <th>Check-in / Out</th>
+                  <th>Amount</th>
+                  <th>Date Approved/Rejected</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historySlips.map((h) => (
+                  <tr key={h.paymentId}>
+                    <td>{h.paymentId}</td>
+                    <td>
+                      <strong>{h.guestName}</strong>
+                      <br />
+                      <span style={{ fontSize: "12px", color: "#64748b" }}>{h.guestEmail}</span>
+                    </td>
+                    <td>
+                      <strong>Room {h.roomNumber}</strong>
+                      <br />
+                      <span style={{ fontSize: "12px", color: "#64748b" }}>{h.roomType}</span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: "13px" }}>
+                        {new Date(h.checkIn).toLocaleDateString()} to {new Date(h.checkOut).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td>
+                      <strong style={{ color: "#1a3c5e" }}>LKR {Number(h.amount).toLocaleString()}</strong>
+                    </td>
+                    <td style={{ fontSize: "12px", color: "#64748b" }}>
+                      {new Date(h.date).toLocaleString()}
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          fontWeight: "bold",
+                          textTransform: "capitalize",
+                          backgroundColor: h.status === "Completed" ? "#d1fae5" : "#fee2e2",
+                          color: h.status === "Completed" ? "#065f46" : "#991b1b",
+                        }}
+                      >
+                        {h.status === "Completed" ? "Approved" : "Rejected"}
+                      </span>
                     </td>
                   </tr>
                 ))}

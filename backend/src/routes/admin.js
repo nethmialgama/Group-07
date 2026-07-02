@@ -480,6 +480,28 @@ router.get("/pending-slips", async (req, res) => {
   }
 });
 
+// GET /api/admin/slip-history
+router.get("/slip-history", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT p.paymentId, p.amount, p.date, p.payment_method, p.status,
+              r.reservationId, r.checkIn, r.checkOut, r.total_price,
+              g.name AS guestName, g.email AS guestEmail, g.phone AS guestPhone,
+              rm.roomType, rm.roomNumber
+       FROM Payment p
+       JOIN Reservation r  ON r.reservationId = p.reservationId
+       JOIN Guest g         ON g.guestId       = r.guestId
+       JOIN Room rm         ON rm.roomId        = r.roomId
+       WHERE p.payment_method = 'Slip' AND p.status IN ('Completed', 'Failed')
+       ORDER BY p.date DESC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 // PUT /api/admin/confirm-slip/:paymentId
 router.put("/confirm-slip/:paymentId", async (req, res) => {
   const { action } = req.body; // 'approve' or 'reject'

@@ -46,6 +46,7 @@ function Booking({ onNavigate, room, searchCriteria }) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card");
 
   // 2. Fix Price Calculation: Remove commas from "6,000" and turn into number
   // "6,000" -> "6000" -> 6000
@@ -103,6 +104,7 @@ function Booking({ onNavigate, room, searchCriteria }) {
         totalPrice: data.totalPrice,
         checkIn,
         checkOut,
+        paymentMethod,
       });
     } catch (err) {
       console.error(err);
@@ -238,10 +240,25 @@ function Booking({ onNavigate, room, searchCriteria }) {
           <div className="payment-select-box">
             <h3>Payment Options</h3>
             <div className="payment-option">
-              <input type="radio" name="payment" id="card" defaultChecked />
+              <input
+                type="radio"
+                name="payment"
+                id="card"
+                checked={paymentMethod === "card"}
+                onChange={() => setPaymentMethod("card")}
+              />
               <label htmlFor="card">Credit Card 💳</label>
             </div>
-
+            <div className="payment-option">
+              <input
+                type="radio"
+                name="payment"
+                id="slip"
+                checked={paymentMethod === "slip"}
+                onChange={() => setPaymentMethod("slip")}
+              />
+              <label htmlFor="slip">Bank Slip 📄</label>
+            </div>
 
             <div className="policy-check">
               <input type="checkbox" />
