@@ -78,6 +78,54 @@ function Reviews() {
     return Math.round((count / totalReviews) * 100);
   };
 
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/reviews");
+      const data = await res.json();
+      setReviews(data);
+    } catch (err) {
+      console.log("GET ERROR:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const handleAddReview = async () => {
+    if (!name.trim()) {
+      alert("Please enter your name");
+      return;
+    }
+
+    if (rating === 0) {
+      alert("Please select rating");
+      return;
+    }
+
+    const payload = {
+      name,
+      review: reviewText,
+      rating,
+    };
+
+    try {
+      await fetch("http://localhost:5000/api/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      setReviewText("");
+      setRating(0);
+      fetchReviews();
+    } catch (err) {
+      console.log("POST ERROR:", err);
+    }
+  };
+
   return (
     <div className="page-container" style={{ background: "#f8f9fa", paddingBottom: "60px" }}>
       <div className="reviews-header-text">

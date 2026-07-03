@@ -187,11 +187,36 @@ function App() {
       } catch (err) {
         console.error(err);
       }
-    };
 
-    loadFeaturedRooms();
-  }, []);
+      const mapped = data
+        .filter((room) => room.status === "Available")
+        .slice(0, 3)
+        .map((room, idx) => ({
+          id: room.roomId,
+          roomId: room.roomId,
+          title: `${room.roomType} Room`,
+          price: `LKR ${Number(room.roomPrice || 0).toLocaleString()}`,
+          rawPrice: Number(room.roomPrice || 0).toLocaleString(),
+          rating: (4.2 + (idx % 4) * 0.2).toFixed(1),
 
+          // 🔥 IMPORTANT FIX (USE DB IMAGE)
+          image: `http://localhost:5000/images/${room.image}`,
+
+          tags: (room.amenities || "Wi-Fi, AC")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        }));
+
+      setFeaturedRooms(mapped);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadFeaturedRooms();
+}, []);
+        
   // 2. Handle Browser "Back" Button
   useEffect(() => {
     const handlePopState = (event) => {
