@@ -483,11 +483,6 @@ body,
   filter: brightness(1.1);
 }
 
-.btn-fill:hover {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
 /* --- Updated Footer --- */
 .footer {
   background-color: #0f172a; /* Deep Navy/Slate background */
@@ -2044,6 +2039,30 @@ body,
   font-size: 0.9rem;
 }
 
+/* Payment method badge in admin Recent Bookings table */
+.payment-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.payment-badge-cash {
+  background: #d1fae5;
+  color: #065f46;
+}
+.payment-badge-slip {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.payment-badge-none {
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
 /* Notifications & Actions */
 .dashboard-right-col {
   flex: 1;
@@ -3186,7 +3205,7 @@ body,
 .reviews-header-text {
   max-width: 800px;
   margin: 0 auto;
-  padding: 10px 20px 20px;
+  padding: 30px 20px 20px;
 }
 
 .reviews-header-text h1 {
