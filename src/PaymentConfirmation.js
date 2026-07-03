@@ -84,20 +84,24 @@ function PaymentConfirmation({ onNavigate, room }) {
     <div className="page-container">
       {/* Header */}
       <div className="payment-header">
-        <h1>Booking Confirmed! 🎉</h1>
-        <p>Your payment was successful and your room is reserved.</p>
+        <h1>{data.status === "Pending" ? "Booking Submitted" : "Booking Confirmed"}</h1>
+        <p>
+          {data.status === "Pending"
+            ? "Your bank slip has been uploaded successfully and is pending approval by our admin."
+            : "Your payment was successful and your room is reserved."}
+        </p>
       </div>
 
       {/* Step indicator — all done */}
       <div className="payment-steps">
         <div className="step done">
-          <span className="step-number">✓</span>
-          <span className="step-label">Review &amp; Billing</span>
+          <span className="step-number">1</span>
+          <span className="step-label">Billing Information</span>
         </div>
         <div className="step-line done" />
         <div className="step done">
-          <span className="step-number">✓</span>
-          <span className="step-label">Payment</span>
+          <span className="step-number">2</span>
+          <span className="step-label">Full payment</span>
         </div>
         <div className="step-line done" />
         <div className="step active">
@@ -120,7 +124,12 @@ function PaymentConfirmation({ onNavigate, room }) {
             </p>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="invoice-badge">✓ PAID</div>
+            <div 
+              className="invoice-badge" 
+              style={data.status === "Pending" ? { backgroundColor: "#f59e0b", color: "#ffffff" } : {}}
+            >
+              {data.status === "Pending" ? "PENDING" : "PAID"}
+            </div>
             <p className="invoice-id">Invoice #{data.paymentId}</p>
             <p className="invoice-date">
               {new Date().toLocaleDateString("en-GB", {
@@ -161,9 +170,11 @@ function PaymentConfirmation({ onNavigate, room }) {
             )}
             <p className="invoice-value">
               <strong>Payment method:</strong>{" "}
-              {data.cardBrand
-                ? `${data.cardBrand} ····${data.cardLast4}`
-                : "Card"}
+              {data.status === "Pending"
+                ? "Bank Slip Upload"
+                : data.cardBrand
+                  ? `${data.cardBrand} ····${data.cardLast4}`
+                  : "Card"}
             </p>
           </div>
         </div>
@@ -214,17 +225,17 @@ function PaymentConfirmation({ onNavigate, room }) {
         <div className="invoice-email-row">
           {emailSending && (
             <p className="invoice-email-status sending">
-              📧 Sending invoice to {billing.email}...
+              Sending invoice to {billing.email}...
             </p>
           )}
           {emailSent && (
             <p className="invoice-email-status sent">
-              ✅ Invoice emailed to <strong>{billing.email}</strong>
+              Invoice emailed to <strong>{billing.email}</strong>
             </p>
           )}
           {!emailSending && !emailSent && (
             <button className="btn-link" onClick={sendInvoiceEmail}>
-              📧 Resend invoice email
+              Resend invoice email
             </button>
           )}
         </div>
@@ -236,7 +247,7 @@ function PaymentConfirmation({ onNavigate, room }) {
             onClick={handleDownloadPDF}
             disabled={pdfLoading}
           >
-            {pdfLoading ? "Generating PDF..." : "⬇ Download Invoice PDF"}
+            {pdfLoading ? "Generating PDF..." : "Download Invoice PDF"}
           </button>
           <button className="btn-blue" onClick={() => onNavigate("dashboard")}>
             Go to Dashboard

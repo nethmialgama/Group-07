@@ -8,13 +8,15 @@
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
+    "@google/genai": "^2.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
     "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.5.2",
+    "mysql2": "^3.22.3",
     "nodemailer": "^8.0.5",
-    "pdfkit": "^0.18.0"
+    "pdfkit": "^0.18.0",
+    "stripe": "^22.1.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

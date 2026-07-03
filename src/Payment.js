@@ -6,12 +6,18 @@ import { getStoredAuth, getAuthHeaders } from "./auth";
 function Payment({ onNavigate, room }) {
   const storedAuth = getStoredAuth();
 
-  // ── ALL HOOKS FIRST ────────────────────────────────────────────────────────
+  // ── IMPORTANT: Declare selectedRoom FIRST (used inside useEffect) ─────────
+  const selectedRoom = room || null;
+
+  // ── ALL HOOKS AFTER selectedRoom ──────────────────────────────────────────
   const [fullName, setFullName] = useState(storedAuth.name || "");
   const [email, setEmail] = useState(storedAuth.email || "");
-  const [phone, setPhone] = useState(storedAuth.phone || "");
-  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState(
+    selectedRoom?.bookingPhone || storedAuth.phone || "",
+  );
+  const [address, setAddress] = useState(selectedRoom?.bookingAddress || "");
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [errors, setErrors] = useState({});
 
   // Payment amount state
@@ -23,14 +29,14 @@ function Payment({ onNavigate, room }) {
 
   // ── Fetch payment quote from backend ──────────────────────────────────────
   useEffect(() => {
-    if (hasFetchedQuote.current) return;
+    if (hasFetchedQuote.current || !selectedRoom?.reservationId) return;
     hasFetchedQuote.current = true;
 
     const fetchQuote = async () => {
       setQuoteLoading(true);
       try {
         const res = await fetch(
-          `http://localhost:5000/api/payments/policy/${selectedRoom?.reservationId}`,
+          `http://localhost:5000/api/payments/policy/${selectedRoom.reservationId}`,
           { headers: getAuthHeaders() },
         );
         const data = await res.json();
@@ -39,16 +45,20 @@ function Payment({ onNavigate, room }) {
 
         setQuote(data);
         // Default slider to the minimum required amount
-        setPayAmount(data.advancePayment.requiredAmount);
+        if (selectedRoom?.paymentMethod === "slip") {
+          setPayAmount(data.totalPrice);
+        } else {
+          setPayAmount(data.advancePayment.requiredAmount);
+        }
       } catch (err) {
         console.error(err);
         showToast("Could not load payment details. Please try again.", "error");
         // Fallback: use raw price from room prop
         const fallback = Number(
           String(
-            selectedRoom?.totalPrice ||
-              selectedRoom?.rawPrice ||
-              selectedRoom?.price ||
+            selectedRoom.totalPrice ||
+              selectedRoom.rawPrice ||
+              selectedRoom.price ||
               "0",
           ).replace(/[^0-9.]/g, ""),
         );
@@ -58,11 +68,23 @@ function Payment({ onNavigate, room }) {
       }
     };
 
-    if (selectedRoom?.reservationId) fetchQuote();
-  }, []);
+    fetchQuote();
+  }, [selectedRoom?.reservationId]); // ← proper dependency
 
-  // ── Early return AFTER hooks ───────────────────────────────────────────────
-  const selectedRoom = room || null;
+  useEffect(() => {
+    if (!showPolicyModal) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setShowPolicyModal(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showPolicyModal]);
+
+  // ── Early return ──────────────────────────────────────────────────────────
   if (!selectedRoom || !selectedRoom.reservationId) {
     return (
       <div
@@ -96,6 +118,24 @@ function Payment({ onNavigate, room }) {
           100,
       )
     : 100;
+
+  const policySections = {
+    advancePayment: [
+      {
+        when: "More than 30 days before check-in",
+        value: "20% advance payment",
+      },
+      { when: "20 to 30 days before check-in", value: "50% advance payment" },
+      { when: "Less than 20 days before check-in", value: "100% full payment" },
+    ],
+    refundOnCancellation: [
+      { when: "More than 30 days before check-in", value: "80% refund" },
+      { when: "20 to 30 days before check-in", value: "70% refund" },
+      { when: "7 to 20 days before check-in", value: "60% refund" },
+      { when: "3 to 7 days before check-in", value: "40% refund" },
+      { when: "Less than 3 days before check-in", value: "No refund" },
+    ],
+  };
 
   // ── Slider change ──────────────────────────────────────────────────────────
   const handleSliderChange = (e) => {
@@ -257,7 +297,7 @@ function Payment({ onNavigate, room }) {
           {/* Payment Amount Section */}
           {quoteLoading ? (
             <div className="quote-loading">
-              ⏳ Calculating payment requirements...
+              Calculating payment requirements...
             </div>
           ) : (
             <div className="payment-amount-card">
@@ -276,7 +316,7 @@ function Payment({ onNavigate, room }) {
                 </div>
               )}
 
-              {partialAllowed ? (
+              {partialAllowed && selectedRoom?.paymentMethod !== "slip" ? (
                 <>
                   {/* Policy note */}
                   <p className="payment-policy-note">
@@ -299,7 +339,7 @@ function Payment({ onNavigate, room }) {
                       </span>
                     )}
                     {payAmount >= totalPrice && (
-                      <span className="pay-amount-full">✓ Full payment</span>
+                      <span className="pay-amount-full">Full payment</span>
                     )}
                   </div>
 
@@ -350,14 +390,15 @@ function Payment({ onNavigate, room }) {
                 /* Full payment required — no slider */
                 <>
                   <p className="payment-policy-note">
-                    Your check-in is less than 20 days away. Full payment is
-                    required at this time.
+                    {selectedRoom?.paymentMethod === "slip"
+                      ? "Bank Slip Upload requires full payment of the booking total."
+                      : "Your check-in is less than 20 days away. Full payment is required at this time."}
                   </p>
                   <div className="pay-amount-display">
                     <span className="pay-amount-value">
                       LKR {totalPrice.toLocaleString()}
                     </span>
-                    <span className="pay-amount-full">✓ Full payment</span>
+                    <span className="pay-amount-full">Full payment</span>
                   </div>
                 </>
               )}
@@ -378,20 +419,16 @@ function Payment({ onNavigate, room }) {
                 }}
               />
               <span>
-                I have read and agree to the{" "}
-                <span
-                  className="policy-link"
-                  onClick={() =>
-                    showToast(
-                      "Advance payment: 20% if 30+ days, 50% if 20-30 days, 100% if under 20 days. Refund: 80% if 30+ days, 70% if 20-30 days, 60% if 7-20 days, 40% if 3-7 days, no refund under 3 days.",
-                      "info",
-                    )
-                  }
-                >
-                  cancellation &amp; refund policy
-                </span>
+                I have read and agree to the cancellation &amp; refund policy.
               </span>
             </label>
+            <button
+              type="button"
+              className="policy-link-button"
+              onClick={() => setShowPolicyModal(true)}
+            >
+              View cancellation &amp; refund policy
+            </button>
             {errors.policy && (
               <span className="field-error">{errors.policy}</span>
             )}
@@ -408,16 +445,81 @@ function Payment({ onNavigate, room }) {
                 cursor: agreedToPolicy ? "pointer" : "not-allowed",
               }}
             >
-              Confirm &amp; Proceed to Payment →
+              Confirm and Proceed to Payment
             </button>
             <button
               className="btn-cancel-pay"
               onClick={() => onNavigate("booking")}
             >
-              ← Back to Booking
+              Back to Booking
             </button>
           </div>
         </div>
+
+        {showPolicyModal && (
+          <div
+            className="policy-modal-overlay"
+            onClick={() => setShowPolicyModal(false)}
+          >
+            <div
+              className="policy-modal-content"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="policy-modal-header">
+                <div>
+                  <span className="policy-modal-kicker">Payment terms</span>
+                  <h2 className="policy-modal-title">
+                    Cancellation &amp; Refund Policy
+                  </h2>
+                  <p className="policy-modal-description">
+                    These rules explain how the amount due and any refund are
+                    calculated based on how far your cancellation is from the
+                    check-in date.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="policy-modal-close"
+                  onClick={() => setShowPolicyModal(false)}
+                  aria-label="Close policy dialog"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="policy-modal-grid">
+                <section className="policy-modal-card">
+                  <h3>Advance Payment</h3>
+                  <div className="policy-rule-list">
+                    {policySections.advancePayment.map((item) => (
+                      <div className="policy-rule-item" key={item.when}>
+                        <span>{item.when}</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="policy-modal-card">
+                  <h3>Refund on Cancellation</h3>
+                  <div className="policy-rule-list">
+                    {policySections.refundOnCancellation.map((item) => (
+                      <div className="policy-rule-item" key={item.when}>
+                        <span>{item.when}</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <div className="policy-modal-footnote">
+                Full payment is required when your check-in is less than 20 days
+                away.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

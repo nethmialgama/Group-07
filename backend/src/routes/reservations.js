@@ -4,6 +4,7 @@ const router = express.Router();
 const pool = require("../db");
 const { authenticate } = require("../middleware/auth");
 const { getRefundQuote } = require("../services/paymentPolicy");
+const { cleanupExpiredReservations } = require("../utils/cleanup");
 
 // POST /api/reservations - create a reservation
 router.post("/", authenticate, async (req, res) => {
@@ -22,6 +23,7 @@ router.post("/", authenticate, async (req, res) => {
   }
 
   try {
+    await cleanupExpiredReservations();
     const [roomRows] = await pool.query(
       "SELECT roomPrice FROM Room WHERE roomId = ?",
       [roomId],
@@ -49,6 +51,25 @@ router.post("/", authenticate, async (req, res) => {
       return res.status(400).json({ error: "checkOut must be after checkIn" });
     }
 
+    // Check if there is an existing Pending reservation for this guest, room, and dates to reuse
+    const [existing] = await pool.query(
+      `SELECT reservationId, total_price 
+       FROM Reservation 
+       WHERE guestId = ? 
+         AND roomId = ? 
+         AND DATE(checkIn) = DATE(?) 
+         AND DATE(checkOut) = DATE(?) 
+         AND status = 'Pending'`,
+      [guestId, roomId, checkIn, checkOut]
+    );
+
+    if (existing.length > 0) {
+      return res.status(201).json({ 
+        reservationId: existing[0].reservationId, 
+        totalPrice: existing[0].total_price 
+      });
+    }
+
     const [conflicts] = await pool.query(
       `SELECT reservationId
        FROM Reservation
@@ -72,7 +93,7 @@ router.post("/", authenticate, async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO Reservation (checkIn, checkOut, booking_date, status, total_price, guestId, roomId, staffId)
-       VALUES (?, ?, NOW(), 'Confirmed', ?, ?, ?, ?)`,
+       VALUES (?, ?, NOW(), 'Pending', ?, ?, ?, ?)`,
       [checkIn, checkOut, totalPrice, guestId, roomId, staffId || null],
     );
 
@@ -90,6 +111,7 @@ router.get("/my", authenticate, async (req, res) => {
   }
 
   try {
+    await cleanupExpiredReservations();
     const [rows] = await pool.query(
       `SELECT
          r.reservationId,

@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticate } = require("../middleware/auth");
+const Stripe = require("stripe");
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const fs = require("fs");
+const path = require("path");
 const {
   buildInvoicePDF,
   sendInvoiceEmail,
@@ -13,18 +17,33 @@ const {
   roundMoney,
 } = require("../services/paymentPolicy");
 
+let paymentSlipColumnsEnsured = false;
+async function ensurePaymentSlipColumns() {
+  if (paymentSlipColumnsEnsured) return;
+  try {
+    const [columns] = await pool.query("SHOW COLUMNS FROM Payment LIKE 'slip_image'");
+    if (columns.length === 0) {
+      await pool.query("ALTER TABLE Payment ADD COLUMN slip_image VARCHAR(255) NULL AFTER reservationId");
+      console.log("Migration: Added slip_image column to Payment table.");
+    }
+    paymentSlipColumnsEnsured = true;
+  } catch (err) {
+    console.error("Migration: Failed to add slip_image column to Payment table", err);
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 async function getReservationById(reservationId) {
   const [rows] = await pool.query(
-    "SELECT reservationId, guestId, checkIn, total_price FROM Reservation WHERE reservationId = ?",
+    "SELECT reservationId, guestId, checkIn, total_price, status FROM Reservation WHERE reservationId = ?",
     [reservationId],
   );
   return rows.length ? rows[0] : null;
 }
 
 function canAccessReservation(req, reservation) {
-  if (req.user.userType !== "guest") {
-    return true;
-  }
+  if (req.user.userType !== "guest") return true;
   return Number(reservation.guestId) === Number(req.user.id);
 }
 
@@ -33,12 +52,33 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-// GET /api/payments/policy-rules
+// ── POST /api/payments/create-intent ─────────────────────────────────────────
+router.post("/create-intent", authenticate, async (req, res) => {
+  const { amount } = req.body;
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: "Invalid amount" });
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Stripe uses cents
+      currency: "lkr",
+      automatic_payment_methods: { enabled: true },
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create payment intent" });
+  }
+});
+
+// ── GET /api/payments/policy-rules ───────────────────────────────────────────
 router.get("/policy-rules", (req, res) => {
   res.json(getPolicyTable());
 });
 
-// GET /api/payments/policy/:reservationId
+// ── GET /api/payments/policy/:reservationId ──────────────────────────────────
 router.get("/policy/:reservationId", authenticate, async (req, res) => {
   try {
     const reservation = await getReservationById(req.params.reservationId);
@@ -57,7 +97,6 @@ router.get("/policy/:reservationId", authenticate, async (req, res) => {
       [reservation.reservationId],
     );
     const paidAmount = Number(paymentRows[0]?.amount || 0);
-
     const totalPrice = Number(reservation.total_price || 0);
     const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
     const refund = getRefundQuote(paidAmount, reservation.checkIn);
@@ -85,7 +124,7 @@ router.get("/policy/:reservationId", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/payments/refund-quote/:reservationId?cancellationDate=YYYY-MM-DD
+// ── GET /api/payments/refund-quote/:reservationId ────────────────────────────
 router.get("/refund-quote/:reservationId", authenticate, async (req, res) => {
   try {
     const reservation = await getReservationById(req.params.reservationId);
@@ -104,7 +143,6 @@ router.get("/refund-quote/:reservationId", authenticate, async (req, res) => {
       [reservation.reservationId],
     );
     const paidAmount = Number(paymentRows[0]?.amount || 0);
-
     const cancellationDate = req.query.cancellationDate || new Date();
     const quote = getRefundQuote(
       paidAmount,
@@ -128,9 +166,11 @@ router.get("/refund-quote/:reservationId", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/payments - create a payment record
+// ── POST /api/payments ───────────────────────────────────────────────────────
 router.post("/", authenticate, async (req, res) => {
-  const { reservationId, amount, payment_method, status } = req.body;
+  await ensurePaymentSlipColumns();
+
+  const { reservationId, amount, payment_method, status, slip_image } = req.body;
   if (!reservationId || amount == null || !payment_method) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -139,6 +179,11 @@ router.post("/", authenticate, async (req, res) => {
     const reservation = await getReservationById(reservationId);
     if (!reservation) {
       return res.status(404).json({ error: "Reservation not found" });
+    }
+    if (reservation.status === "Cancelled") {
+      return res
+        .status(400)
+        .json({ error: "Your booking session has expired. Please book again." });
     }
     if (!canAccessReservation(req, reservation)) {
       return res
@@ -154,37 +199,76 @@ router.post("/", authenticate, async (req, res) => {
     }
 
     const totalPrice = Number(reservation.total_price || 0);
-    const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
 
-    if (numericAmount + 0.0001 < advance.requiredAmount) {
-      return res.status(400).json({
-        error: "Insufficient advance payment for this booking window",
-        requiredAdvanceAmount: advance.requiredAmount,
-        requiredAdvanceRate: advance.rate,
-        daysBeforeCheckIn: advance.daysBeforeCheckIn,
-      });
+    // If Bank Slip payment, verify they are paying the full amount
+    if (payment_method === "Slip") {
+      if (numericAmount + 0.01 < totalPrice) {
+        return res.status(400).json({
+          error: "Bank Slip upload requires paying the full amount.",
+        });
+      }
+    } else {
+      // Otherwise enforce advance policy rules for other types (e.g. Card)
+      const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
+      if (numericAmount + 0.0001 < advance.requiredAmount) {
+        return res.status(400).json({
+          error: "Insufficient advance payment for this booking window",
+          requiredAdvanceAmount: advance.requiredAmount,
+          requiredAdvanceRate: advance.rate,
+          daysBeforeCheckIn: advance.daysBeforeCheckIn,
+        });
+      }
+    }
+
+    // Default status: Pending for Bank Slips, Completed for Cards
+    const defaultStatus = payment_method === "Slip" ? "Pending" : "Completed";
+    const finalStatus = status || defaultStatus;
+
+    // Handle base64 slip upload
+    let slipImageFilename = null;
+    if (payment_method === "Slip" && slip_image) {
+      try {
+        const uploadsDir = path.join(__dirname, "../../uploads");
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const matches = slip_image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const imageBuffer = Buffer.from(matches[2], "base64");
+          const fileExtension = matches[1].split("/")[1] || "png";
+          const filename = `slip-${reservationId}-${Date.now()}.${fileExtension}`;
+          fs.writeFileSync(path.join(uploadsDir, filename), imageBuffer);
+          slipImageFilename = filename;
+        }
+      } catch (err) {
+        console.error("Failed to save bank slip upload:", err);
+      }
     }
 
     const [result] = await pool.query(
-      "INSERT INTO Payment (amount, date, payment_method, status, reservationId) VALUES (?, NOW(), ?, ?, ?)",
+      "INSERT INTO Payment (amount, date, payment_method, status, reservationId, slip_image) VALUES (?, NOW(), ?, ?, ?, ?)",
       [
         roundMoney(numericAmount),
         payment_method,
-        status || "Completed",
+        finalStatus,
         reservationId,
+        slipImageFilename,
       ],
     );
 
-    // Optionally update reservation status if payment completed
-    if ((status || "Completed") === "Completed") {
+    // Only update reservation status if payment is completed
+    if (finalStatus === "Completed") {
+      const remainingAmount = totalPrice - numericAmount;
       const nextReservationStatus =
-        numericAmount >= totalPrice ? "Confirmed" : "Pending";
+        remainingAmount <= 0.01 ? "Confirmed" : "PartiallyPaid";
       await pool.query(
         "UPDATE Reservation SET status = ? WHERE reservationId = ?",
         [nextReservationStatus, reservationId],
       );
     }
 
+    const advance = getAdvancePaymentQuote(totalPrice, reservation.checkIn);
     res.status(201).json({
       paymentId: result.insertId,
       requiredAdvanceAmount: advance.requiredAmount,
@@ -203,13 +287,12 @@ router.post("/", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/payments/send-invoice
+// ── POST /api/payments/send-invoice ──────────────────────────────────────────
 router.post("/send-invoice", authenticate, async (req, res) => {
   const { paymentId } = req.body;
   if (!paymentId) return res.status(400).json({ error: "paymentId required" });
 
   try {
-    // Load payment + reservation + guest from DB
     const [rows] = await pool.query(
       `SELECT p.paymentId, p.amount, p.payment_method,
               r.reservationId, r.checkIn, r.checkOut, r.total_price,
@@ -227,7 +310,6 @@ router.post("/send-invoice", authenticate, async (req, res) => {
       return res.status(404).json({ error: "Payment not found" });
     const row = rows[0];
 
-    // Build invoice object (matches what the frontend passes too)
     const invoice = {
       paymentId: row.paymentId,
       paidAmount: Number(row.amount),
@@ -253,7 +335,7 @@ router.post("/send-invoice", authenticate, async (req, res) => {
   }
 });
 
-// GET /api/payments/invoice-pdf/:paymentId
+// ── GET /api/payments/invoice-pdf/:paymentId ─────────────────────────────────
 router.get("/invoice-pdf/:paymentId", authenticate, async (req, res) => {
   try {
     const [rows] = await pool.query(

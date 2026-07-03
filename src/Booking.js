@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { getAuthHeaders, getStoredAuth } from "./auth";
 import { showToast } from "./toast";
 
-function Booking({ onNavigate, room }) {
+function Booking({ onNavigate, room, searchCriteria }) {
   // 1. Handle Fallback: If page loaded directly without clicking a room, show default
   const selectedRoom = room || {
     title: "Deluxe Double Room",
@@ -14,10 +14,39 @@ function Booking({ onNavigate, room }) {
     tags: ["Wi-Fi", "AC", "Breakfast"], // Note: Rooms.js uses 'tags', mock used 'facilities'
   };
 
-  const [nights, setNights] = useState(1);
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const calculateNights = (inD, outD) => {
+    if (!inD || !outD) return 1;
+    const diff = Math.ceil((new Date(outD) - new Date(inD)) / (24 * 60 * 60 * 1000));
+    return diff > 0 ? diff : 1;
+  };
+
+  const [checkIn, setCheckIn] = useState(searchCriteria?.checkIn || "");
+  const [checkOut, setCheckOut] = useState(searchCriteria?.checkOut || "");
+  const [nights, setNights] = useState(() =>
+    calculateNights(searchCriteria?.checkIn, searchCriteria?.checkOut)
+  );
+
+  const getGuestOptions = () => {
+    const capacity = Number(selectedRoom.capacity || 2);
+    const options = [];
+    if (capacity >= 1) options.push("1 Adult");
+    if (capacity >= 2) options.push("2 Adults");
+    if (capacity >= 3) options.push("2 Adults, 1 Child");
+    return options;
+  };
+
+  const [guests, setGuests] = useState(() => {
+    const capacity = Number(selectedRoom.capacity || 2);
+    if (searchCriteria?.guestSelection) {
+      if (searchCriteria.guestSelection === "1-adult" && capacity >= 1) return "1 Adult";
+      if (searchCriteria.guestSelection === "2-adults" && capacity >= 2) return "2 Adults";
+      if (searchCriteria.guestSelection === "2-adults-1-kid" && capacity >= 3) return "2 Adults, 1 Child";
+    }
+    return capacity === 1 ? "1 Adult" : "2 Adults";
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card");
 
   // 2. Fix Price Calculation: Remove commas from "6,000" and turn into number
   // "6,000" -> "6000" -> 6000
@@ -75,6 +104,7 @@ function Booking({ onNavigate, room }) {
         totalPrice: data.totalPrice,
         checkIn,
         checkOut,
+        paymentMethod,
       });
     } catch (err) {
       console.error(err);
@@ -115,13 +145,27 @@ function Booking({ onNavigate, room }) {
             <input
               type="date"
               value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
+              disabled={!!searchCriteria?.checkIn}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCheckIn(value);
+                if (value && checkOut) {
+                  const inDate = new Date(value);
+                  const outDate = new Date(checkOut);
+                  const diff = Math.max(
+                    1,
+                    Math.ceil((outDate - inDate) / (24 * 60 * 60 * 1000)),
+                  );
+                  setNights(diff);
+                }
+              }}
             />
 
             <label>Check-out Date</label>
             <input
               type="date"
               value={checkOut}
+              disabled={!!searchCriteria?.checkOut}
               onChange={(e) => {
                 const value = e.target.value;
                 setCheckOut(value);
@@ -138,10 +182,16 @@ function Booking({ onNavigate, room }) {
             />
 
             <label>Guests</label>
-            <select>
-              <option>1 Adult</option>
-              <option>2 Adults</option>
-              <option>2 Adults, 1 Child</option>
+            <select
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+              disabled={!!searchCriteria?.guestSelection}
+            >
+              {getGuestOptions().map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
             </select>
 
             <label>Special Requests</label>
@@ -190,12 +240,24 @@ function Booking({ onNavigate, room }) {
           <div className="payment-select-box">
             <h3>Payment Options</h3>
             <div className="payment-option">
-              <input type="radio" name="payment" id="card" defaultChecked />
+              <input
+                type="radio"
+                name="payment"
+                id="card"
+                checked={paymentMethod === "card"}
+                onChange={() => setPaymentMethod("card")}
+              />
               <label htmlFor="card">Credit Card 💳</label>
             </div>
             <div className="payment-option">
-              <input type="radio" name="payment" id="paypal" />
-              <label htmlFor="paypal">PayPal 🅿️</label>
+              <input
+                type="radio"
+                name="payment"
+                id="slip"
+                checked={paymentMethod === "slip"}
+                onChange={() => setPaymentMethod("slip")}
+              />
+              <label htmlFor="slip">Bank Slip 📄</label>
             </div>
 
             <div className="policy-check">

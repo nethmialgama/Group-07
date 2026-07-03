@@ -1,40 +1,82 @@
 import React, { useState, useEffect } from "react";
+import { getAuthHeaders, getStoredAuth } from "./auth";
+import { showToast } from "./toast";
 
 function Reviews() {
   const [reviews, setReviews] = useState([]);
   const [reviewText, setReviewText] = useState("");
   const [rating, setRating] = useState(0);
-  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const ratingsDist = [
-    { star: 5, count: 150, width: "70%" },
-    { star: 4, count: 60, width: "40%" },
-    { star: 3, count: 20, width: "15%" },
-    { star: 2, count: 10, width: "8%" },
-    { star: 1, count: 5, width: "4%" },
-  ];
+  const auth = getStoredAuth();
+  const isLoggedIn = !!auth.token;
 
-  // static reviews (your concept kept)
-  const userReviews = [
-    {
-      name: "Nethmi",
-      date: "Nov 2025",
-      text: "Amazing stay! Will visit again",
-      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80",
-    },
-    {
-      name: "Malith",
-      date: "Dec 2024",
-      text: "Comfortable rooms, good food",
-      img: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=80",
-    },
-    {
-      name: "Afrina",
-      date: "Nov 2024",
-      text: "Loved the pool and services",
-      img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80",
-    },
-  ];
+  const fetchReviews = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/reviews");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setReviews(data);
+      }
+    } catch (err) {
+      console.error("Fetch reviews error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const handleAddReview = async () => {
+    if (!reviewText.trim()) {
+      showToast("Please write something about your experience", "warning");
+      return;
+    }
+
+    if (rating === 0) {
+      showToast("Please select a rating", "warning");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          review: reviewText,
+          rating,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to add review");
+
+      showToast("Thank you for your review!", "success");
+      setReviewText("");
+      setRating(0);
+      fetchReviews();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  // Calculate statistics
+  const totalReviews = reviews.length;
+  const avgRating = totalReviews > 0 
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
+    : "0.0";
+
+  const getDistribution = (star) => {
+    if (totalReviews === 0) return 0;
+    const count = reviews.filter(r => r.rating === star).length;
+    return Math.round((count / totalReviews) * 100);
+  };
 
   const fetchReviews = async () => {
     try {
@@ -85,103 +127,108 @@ function Reviews() {
   };
 
   return (
-    <div
-      className="page-container"
-      style={{ background: "#f8f9fa", paddingTop: "0", paddingBottom: "30px" }}
-    >
-      {/* HEADER */}
+    <div className="page-container" style={{ background: "#f8f9fa", paddingBottom: "60px" }}>
       <div className="reviews-header-text">
-        <h1>Reviews & Ratings</h1>
-        <p>Read guest feedback and share your experience.</p>
+        <h1>Guest Reviews</h1>
+        <p>Real experiences from our valued guests.</p>
       </div>
 
       <div className="reviews-layout">
-        {/* ================= RATING CARD ================= */}
         <div className="rating-summary-card">
           <div className="rating-row-top">
             <div className="big-score-box">
               <div className="score-num">
-                4.7 <span className="score-total">/ 5</span>
+                {avgRating} <span className="score-total">/ 5</span>
               </div>
-              <p className="total-reviews-text">Based on 245 reviews.</p>
+              <p className="total-reviews-text">Based on {totalReviews} reviews</p>
             </div>
 
             <div className="rating-bars-container">
-              {ratingsDist.map((r) => (
-                <div key={r.star} className="rating-bar-row">
-                  <span className="star-label">{r.star}</span>
-                  <div className="bar-track">
-                    <div className="bar-fill" style={{ width: r.width }}></div>
+              {[5, 4, 3, 2, 1].map((star) => {
+                const percent = getDistribution(star);
+                return (
+                  <div key={star} className="rating-bar-row">
+                    <span className="star-label">{star} ★</span>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${percent}%` }}></div>
+                    </div>
+                    <span className="count-label">{percent}%</span>
                   </div>
-                  <span className="count-label">{r.count}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          {/* ================= WRITE REVIEW ================= */}
           <div className="write-review-box">
-            <h3>Write a Review</h3>
+            {isLoggedIn ? (
+              <>
+                <h3>Share Your Experience</h3>
+                <div className="star-input-row" style={{ fontSize: "24px", marginBottom: "15px" }}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span
+                      key={s}
+                      style={{
+                        cursor: "pointer",
+                        color: s <= rating ? "#FFD700" : "#ddd",
+                        marginRight: "5px"
+                      }}
+                      onClick={() => setRating(s)}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
 
-            {/* STAR (simple version - you can improve later) */}
-            <div className="star-input-row">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <span
-                  key={s}
-                  style={{ cursor: "pointer", color: s <= rating ? "gold" : "gray" }}
-                  onClick={() => setRating(s)}
-                >
-                  ★
-                </span>
-              ))}
-            </div>
+                <textarea
+                  placeholder="How was your stay? We'd love to hear from you..."
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  style={{ minHeight: "100px", marginBottom: "15px" }}
+                />
 
-            <input
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <textarea
-              placeholder="Share your experience......"
-              value={reviewText}
-              onChange={(e) => setReviewText(e.target.value)}
-            />
-
-            <button className="btn-blue-review" onClick={handleAddReview}>
-              Submit Review
-            </button>
+                <button className="btn-blue-review" onClick={handleAddReview}>
+                  Post Review
+                </button>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                <p style={{ color: "#666", marginBottom: "15px" }}>Login to share your experience with us.</p>
+                <button className="btn-blue-review" style={{ width: "auto" }} onClick={() => window.location.hash = "#login"}>
+                  Login Now
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ================= STATIC REVIEWS ================= */}
         <div className="review-list-container">
-          {userReviews.map((review, index) => (
-            <div key={index} className="review-card-item">
-              <img src={review.img} alt={review.name} className="reviewer-img" />
-              <div className="review-text-content">
-                <h4>
-                  {review.name} <span className="review-date">{review.date}</span>
-                </h4>
-                <p>{review.text}</p>
+          {loading ? (
+            <p style={{ textAlign: "center", color: "#888" }}>Loading reviews...</p>
+          ) : reviews.length > 0 ? (
+            reviews.map((r) => (
+              <div key={r.id} className="review-card-item">
+                <div className="reviewer-avatar">
+                  {r.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="review-text-content">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h4>{r.name}</h4>
+                    <div style={{ color: "#FFD700" }}>
+                      {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                    </div>
+                  </div>
+                  <span className="review-date">
+                    {new Date(r.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </span>
+                  <p style={{ marginTop: "10px", color: "#444", lineHeight: "1.6" }}>{r.review}</p>
+                </div>
               </div>
+            ))
+          ) : (
+            <div style={{ textAlign: "center", padding: "40px", color: "#888" }}>
+              <p>No reviews yet. Be the first to leave one!</p>
             </div>
-          ))}
-        </div>
-
-        {/* ================= BACKEND REVIEWS ================= */}
-        <div style={{ marginTop: "30px" }}>
-          {reviews.map((r) => (
-            <div
-              key={r.id}
-              style={{ borderBottom: "1px solid #ccc", padding: "10px" }}
-            >
-              <strong>{r.name}</strong>
-              <p>{r.review}</p>
-              <small>{r.created_at}</small>
-            </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

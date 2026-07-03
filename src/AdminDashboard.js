@@ -64,17 +64,25 @@ function AdminDashboard({ onNavigate, onLogout }) {
         const revenueRoomData = await revenueRoomRes.json();
 
         setStats([
-          { title: "Rooms", value: String(statsData.rooms || 0), icon: "🛏️" },
+          {
+            title: "Rooms",
+            value: String(statsData.rooms || 0),
+            icon: "/images/rooms.png",
+          },
           {
             title: "Bookings",
             value: String(statsData.bookings || 0),
-            icon: "📅",
+            icon: "/images/bookings.png",
           },
-          { title: "Users", value: String(statsData.users || 0), icon: "👤" },
+          {
+            title: "Users",
+            value: String(statsData.users || 0),
+            icon: "/images/users.png",
+          },
           {
             title: "Revenue",
             value: `LKR ${Number(statsData.revenue || 0).toLocaleString()}`,
-            icon: "💰",
+            icon: "/images/revenue.png",
           },
         ]);
 
@@ -101,15 +109,15 @@ function AdminDashboard({ onNavigate, onLogout }) {
     loadData();
   }, []);
 
-  // Line Chart Data
+  // Charts Data (same as before)
   const lineData = {
     labels: monthlyData.map((item) => item.month),
     datasets: [
       {
         label: "Bookings",
         data: monthlyData.map((item) => item.count),
-        borderColor: "#c9a84c",
-        backgroundColor: "rgba(201, 168, 76, 0.1)",
+        borderColor: "#8B5CF6",
+        backgroundColor: "rgba(139, 92, 246, 0.15)",
         tension: 0.4,
         fill: true,
         yAxisID: "y",
@@ -117,8 +125,8 @@ function AdminDashboard({ onNavigate, onLogout }) {
       {
         label: "Revenue (LKR)",
         data: monthlyData.map((item) => item.revenue || 0),
-        borderColor: "#1a1a2e",
-        backgroundColor: "rgba(26, 26, 46, 0.1)",
+        borderColor: "#4C1D95",
+        backgroundColor: "rgba(76, 29, 149, 0.15)",
         tension: 0.4,
         fill: true,
         yAxisID: "y1",
@@ -152,7 +160,6 @@ function AdminDashboard({ onNavigate, onLogout }) {
     },
   };
 
-  // Pie Chart
   const totalRevenue = revenueByRoomType.reduce(
     (sum, item) => sum + Number(item.revenue || 0),
     0,
@@ -164,13 +171,11 @@ function AdminDashboard({ onNavigate, onLogout }) {
       {
         data: revenueByRoomType.map((item) => Number(item.revenue || 0)),
         backgroundColor: [
-          "#c9a84c",
-          "#1a1a2e",
-          "#4a90e2",
-          "#e94b3c",
-          "#2ecc71",
-          "#9b59b6",
-          "#f39c12",
+          "#8B5CF6",
+          "#A78BFA",
+          "#C4B5FD",
+          "#6D28D9",
+          "#4C1D95",
         ],
         borderColor: "#ffffff",
         borderWidth: 3,
@@ -217,7 +222,6 @@ function AdminDashboard({ onNavigate, onLogout }) {
               src="/images/logo.png"
               alt="CEYLONO"
             />
-            <span className="brand-logo-text">CEYLONO</span>
           </div>
           <div className="admin-quick-links">
             <a
@@ -277,11 +281,13 @@ function AdminDashboard({ onNavigate, onLogout }) {
           />
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid with Images */}
         <div className="stats-grid">
           {stats.map((stat, index) => (
             <div key={index} className="stat-card">
-              <div className="stat-icon-box">{stat.icon}</div>
+              <div className="stat-icon-box">
+                <img src={stat.icon} alt={stat.title} className="stat-image" />
+              </div>
               <div className="stat-info">
                 <p>{stat.title}</p>
                 <h3>{stat.value}</h3>

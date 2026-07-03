@@ -17,9 +17,16 @@ function Signup({ onLoginClick, onBack }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    let finalValue = value;
+
+    if (name === "phone") {
+      finalValue = value.replace(/\D/g, "");
+      if (finalValue.length > 10) return;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: finalValue,
     }));
     setError("");
   };

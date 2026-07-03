@@ -41,7 +41,7 @@ function Dashboard({ onNavigate, onLogout }) {
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "history"
+  const [activeTab, setActiveTab] = useState("upcoming");
 
   useEffect(() => {
     fetchBookings();
@@ -105,69 +105,82 @@ function Dashboard({ onNavigate, onLogout }) {
   const canCancel = (booking) =>
     booking.status === "Confirmed" || booking.status === "Pending";
 
+  const stats = [
+    {
+      title: "Upcoming",
+      value: String(upcomingBookings.length),
+      icon: "/images/bookings.png",
+    },
+    {
+      title: "Total Bookings",
+      value: String(bookings.length),
+      icon: "/images/clock.png",
+    },
+    {
+      title: "Completed",
+      value: String(bookings.filter((b) => b.status === "Checked-Out").length),
+      icon: "/images/completed.png",
+    },
+    {
+      title: "Cancelled",
+      value: String(bookings.filter((b) => b.status === "Cancelled").length),
+      icon: "/images/cancelled.png",
+    },
+  ];
+
   return (
-    <div className="page-container dashboard-container">
-      {/* LEFT SIDEBAR */}
-      <div className="dashboard-sidebar">
-        <button className="sidebar-btn" onClick={() => onNavigate("home")}>
-          🏨 Hotel Details
-        </button>
-        <button className="sidebar-btn" onClick={() => onNavigate("rooms")}>
-          🛏️ Browse Rooms
-        </button>
-        <button className="sidebar-btn active">📋 My Bookings</button>
-        <button
-          className="sidebar-btn"
-          onClick={() => onNavigate("profile-settings")}
-        >
-          ⚙️ Profile Settings
-        </button>
-        <button className="sidebar-btn sidebar-btn-logout" onClick={onLogout}>
-          🚪 Logout
-        </button>
+    <div className="admin-container">
+      {/* SIDEBAR — mirrors AdminSidebar structure exactly */}
+      <div className="admin-sidebar">
+        <div className="admin-logo-box"></div>
+        <ul className="admin-menu">
+          <li onClick={() => onNavigate("home")}>
+            <img src="/images/hotel.png" alt="Home" className="menu-icon" />
+            Hotel Details
+          </li>
+          <li onClick={() => onNavigate("rooms")}>
+            <img src="/images/rooms.png" alt="Rooms" className="menu-icon" />
+            Browse Rooms
+          </li>
+          <li className="active">
+            <img
+              src="/images/bookings.png"
+              alt="Bookings"
+              className="menu-icon"
+            />
+            My Bookings
+          </li>
+          <li onClick={() => onNavigate("profile-settings")}>
+            <img
+              src="/images/settings.png"
+              alt="Settings"
+              className="menu-icon"
+            />
+            Profile Settings
+          </li>
+        </ul>
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="dashboard-content">
-        <div className="welcome-header">
-          <h1>Welcome back, {displayName} 👋</h1>
-          <p>Manage your reservations and booking history</p>
+      <div className="admin-content">
+        {/* HEADER ROW — title only, no avatar (Navbar already has it) */}
+        <div className="admin-header-row">
+          <h2>Welcome back, {displayName} 👋</h2>
         </div>
 
-        {/* STATS ROW */}
-        <div className="dashboard-stats-row">
-          <div className="dash-stat-card">
-            <span className="dash-stat-icon">📅</span>
-            <div>
-              <div className="dash-stat-value">{upcomingBookings.length}</div>
-              <div className="dash-stat-label">Upcoming</div>
-            </div>
-          </div>
-          <div className="dash-stat-card">
-            <span className="dash-stat-icon">🕐</span>
-            <div>
-              <div className="dash-stat-value">{bookings.length}</div>
-              <div className="dash-stat-label">Total Bookings</div>
-            </div>
-          </div>
-          <div className="dash-stat-card">
-            <span className="dash-stat-icon">✅</span>
-            <div>
-              <div className="dash-stat-value">
-                {bookings.filter((b) => b.status === "Checked-Out").length}
+        {/* STATS GRID */}
+        <div className="stats-grid">
+          {stats.map((stat, index) => (
+            <div key={index} className="stat-card">
+              <div className="stat-icon-box">
+                <img src={stat.icon} alt={stat.title} className="stat-image" />
               </div>
-              <div className="dash-stat-label">Completed</div>
-            </div>
-          </div>
-          <div className="dash-stat-card">
-            <span className="dash-stat-icon">❌</span>
-            <div>
-              <div className="dash-stat-value">
-                {bookings.filter((b) => b.status === "Cancelled").length}
+              <div className="stat-info">
+                <p>{stat.title}</p>
+                <h3>{stat.value}</h3>
               </div>
-              <div className="dash-stat-label">Cancelled</div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* TABS */}

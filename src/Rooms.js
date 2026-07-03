@@ -1,6 +1,7 @@
 // src/Rooms.js
 import React from "react";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { showToast } from "./toast";
 
 const getRoomImage = (roomType = "", idx = 0, capacity = 0) => {
@@ -151,13 +152,23 @@ function Rooms({ onNavigate, searchCriteria }) {
   return (
     <div className="page-container">
       {/* Page Title */}
-      <div className="rooms-header">
+      <motion.div 
+        className="rooms-header"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
         <h1>Available Rooms</h1>
         <p>Choose from a variety of room types to suit your needs</p>
-      </div>
+      </motion.div>
 
       {/* Filter Bar */}
-      <div className="filter-bar">
+      <motion.div 
+        className="filter-bar"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
         <div className="filter-group">
           <select
             className="filter-btn"
@@ -179,14 +190,21 @@ function Rooms({ onNavigate, searchCriteria }) {
             <option value="triple">Triple Bed</option>
           </select>
         </div>
-      </div>
+      </motion.div>
 
       {/* Room Grid */}
       {loading ? <p>Loading rooms...</p> : null}
 
       <div className="room-grid">
-        {filteredRooms.map((room) => (
-          <div key={room.id} className="room-card">
+        {filteredRooms.map((room, index) => (
+          <motion.div 
+            key={room.id} 
+            className="room-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 * index }}
+            whileHover={{ y: -10 }}
+          >
             <img src={room.image} alt={room.title} />
             <div className="room-info">
               <h3>{room.title}</h3>
@@ -225,7 +243,7 @@ function Rooms({ onNavigate, searchCriteria }) {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
       {!loading && filteredRooms.length === 0 ? <p>No rooms found.</p> : null}

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const { authenticate, requireAdmin } = require("../middleware/auth");
+const { cleanupExpiredReservations } = require("../utils/cleanup");
 
 let paymentGatewayTableEnsured = false;
 
@@ -23,6 +24,7 @@ router.use(authenticate, requireAdmin);
 // ─── GET /api/admin/stats ─────────────────────────────────────────────────────
 router.get("/stats", async (req, res) => {
   try {
+    await cleanupExpiredReservations();
     const [[rooms]] = await pool.query("SELECT COUNT(*) AS count FROM Room");
     const [[bookings]] = await pool.query(
       "SELECT COUNT(*) AS count FROM Reservation",
@@ -427,6 +429,151 @@ router.put("/refunds/:id", async (req, res) => {
       }
     }
 
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// ─── GET /api/admin/revenue-by-room-type ─────────────────────────────────────
+router.get("/revenue-by-room-type", async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        rm.roomType,
+        COUNT(r.reservationId) AS booking_count,
+        COALESCE(SUM(r.total_price), 0) AS revenue
+      FROM Reservation r
+      JOIN Room rm ON rm.roomId = r.roomId
+      WHERE r.status NOT IN ('Cancelled')
+      GROUP BY rm.roomType
+      ORDER BY revenue DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// GET /api/admin/pending-slips
+router.get("/pending-slips", async (req, res) => {
+  try {
+    await cleanupExpiredReservations();
+    const [rows] = await pool.query(
+      `SELECT p.paymentId, p.amount, p.date, p.payment_method, p.status, p.slip_image,
+              r.reservationId, r.checkIn, r.checkOut, r.total_price,
+              g.name AS guestName, g.email AS guestEmail, g.phone AS guestPhone,
+              rm.roomType, rm.roomNumber
+       FROM Payment p
+       JOIN Reservation r  ON r.reservationId = p.reservationId
+       JOIN Guest g         ON g.guestId       = r.guestId
+       JOIN Room rm         ON rm.roomId        = r.roomId
+       WHERE p.payment_method = 'Slip' AND p.status = 'Pending'
+       ORDER BY p.date DESC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// GET /api/admin/slip-history
+router.get("/slip-history", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT p.paymentId, p.amount, p.date, p.payment_method, p.status,
+              r.reservationId, r.checkIn, r.checkOut, r.total_price,
+              g.name AS guestName, g.email AS guestEmail, g.phone AS guestPhone,
+              rm.roomType, rm.roomNumber
+       FROM Payment p
+       JOIN Reservation r  ON r.reservationId = p.reservationId
+       JOIN Guest g         ON g.guestId       = r.guestId
+       JOIN Room rm         ON rm.roomId        = r.roomId
+       WHERE p.payment_method = 'Slip' AND p.status IN ('Completed', 'Failed')
+       ORDER BY p.date DESC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// PUT /api/admin/confirm-slip/:paymentId
+router.put("/confirm-slip/:paymentId", async (req, res) => {
+  const { action } = req.body; // 'approve' or 'reject'
+  try {
+    const [paymentRows] = await pool.query(
+      "SELECT reservationId, amount FROM Payment WHERE paymentId = ?",
+      [req.params.paymentId]
+    );
+    if (!paymentRows.length) {
+      return res.status(404).json({ error: "Payment not found" });
+    }
+    const { reservationId, amount } = paymentRows[0];
+    
+    if (action === "approve") {
+      // Update Payment Status
+      await pool.query(
+        "UPDATE Payment SET status = 'Completed' WHERE paymentId = ?",
+        [req.params.paymentId]
+      );
+      // Update Reservation Status
+      await pool.query(
+        "UPDATE Reservation SET status = 'Confirmed' WHERE reservationId = ?",
+        [reservationId]
+      );
+      
+      // Send invoice email to guest
+      try {
+        const [invoiceRows] = await pool.query(
+          `SELECT p.paymentId, p.amount, p.payment_method,
+                  r.reservationId, r.checkIn, r.checkOut, r.total_price,
+                  rm.roomType,
+                  g.name, g.email, g.phone
+           FROM Payment p
+           JOIN Reservation r  ON r.reservationId = p.reservationId
+           JOIN Room rm         ON rm.roomId       = r.roomId
+           JOIN Guest g         ON g.guestId       = r.guestId
+           WHERE p.paymentId = ?`,
+          [req.params.paymentId]
+        );
+        if (invoiceRows.length) {
+          const { sendInvoiceEmail } = require("../services/invoiceService");
+          await sendInvoiceEmail({
+            paymentId: invoiceRows[0].paymentId,
+            paidAmount: Number(invoiceRows[0].amount),
+            remaining: 0,
+            title: `${invoiceRows[0].roomType} Room`,
+            checkIn: invoiceRows[0].checkIn,
+            checkOut: invoiceRows[0].checkOut,
+            cardBrand: "Bank Slip",
+            cardLast4: "",
+            billing: {
+              fullName: invoiceRows[0].name,
+              email: invoiceRows[0].email,
+              phone: invoiceRows[0].phone,
+              address: ""
+            }
+          });
+        }
+      } catch (emailErr) {
+        console.error("Invoice send failed on slip approval:", emailErr);
+      }
+    } else {
+      // Reject
+      await pool.query(
+        "UPDATE Payment SET status = 'Failed' WHERE paymentId = ?",
+        [req.params.paymentId]
+      );
+      await pool.query(
+        "UPDATE Reservation SET status = 'Cancelled' WHERE reservationId = ?",
+        [reservationId]
+      );
+    }
     res.json({ success: true });
   } catch (err) {
     console.error(err);
