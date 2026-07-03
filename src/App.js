@@ -652,19 +652,7 @@ function App() {
               Comfortable rooms • Great location • Best price guarantee
             </motion.p>
             
-            <motion.div 
-              className="tour-container"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-            >
-              <button
-                onClick={() => setIsTourOpen(true)}
-                className="tour-btn-premium"
-              >
-                🎥 Take a 360° Virtual Tour
-              </button>
-            </motion.div>
+
           </div>
 
           <motion.div 

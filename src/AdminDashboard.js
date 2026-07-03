@@ -37,6 +37,28 @@ function AdminDashboard({ onNavigate, onLogout }) {
   const [monthlyData, setMonthlyData] = useState([]);
   const [revenueByRoomType, setRevenueByRoomType] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const openBookingDetail = async (reservationId) => {
+    setDetailLoading(true);
+    setSelectedBooking({ _loading: true });
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/bookings/${reservationId}`, {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load booking");
+      setSelectedBooking(data);
+    } catch (err) {
+      showToast("Could not load booking details", "error");
+      setSelectedBooking(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closeModal = () => setSelectedBooking(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -88,13 +110,15 @@ function AdminDashboard({ onNavigate, onLogout }) {
 
         setRecentBookings(
           bookingsData.map((item) => ({
-            id: `#${item.reservationId}`,
+            id: item.reservationId,
+            displayId: `#${item.reservationId}`,
             guest: item.guest || item.name,
             room: item.roomType,
             in: new Date(item.checkIn).toLocaleDateString(),
             out: new Date(item.checkOut).toLocaleDateString(),
             totalPrice: item.total_price != null ? Number(item.total_price) : null,
             paymentMethod: item.payment_method || null,
+            specialRequests: item.special_requests || null,
           })),
         );
 
@@ -336,7 +360,7 @@ function AdminDashboard({ onNavigate, onLogout }) {
         {/* Recent Bookings */}
         <div className="bottom-dashboard-row">
           <div className="dashboard-card table-card">
-            <h3>Recent Bookings</h3>
+            <h3>Recent Bookings <span style={{fontSize:"0.78rem",color:"#888",fontWeight:400}}>— click a row for full details</span></h3>
             <table className="mini-table">
               <thead>
                 <tr>
@@ -351,8 +375,13 @@ function AdminDashboard({ onNavigate, onLogout }) {
               </thead>
               <tbody>
                 {recentBookings.map((b) => (
-                  <tr key={b.id}>
-                    <td>{b.id}</td>
+                  <tr
+                    key={b.id}
+                    onClick={() => openBookingDetail(b.id)}
+                    style={{ cursor: "pointer" }}
+                    className="booking-row-clickable"
+                  >
+                    <td>{b.displayId}</td>
                     <td>{b.guest}</td>
                     <td>{b.room}</td>
                     <td>{b.in}</td>
@@ -384,6 +413,88 @@ function AdminDashboard({ onNavigate, onLogout }) {
           </div>
         </div>
       </div>
+
+      {/* ─── Booking Detail Modal ─── */}
+      {selectedBooking && (
+        <div className="booking-modal-overlay" onClick={closeModal}>
+          <div className="booking-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="booking-modal-header">
+              <h2>Booking #{selectedBooking.reservationId}</h2>
+              <button className="booking-modal-close" onClick={closeModal}>×</button>
+            </div>
+
+            {selectedBooking._loading ? (
+              <div style={{padding:"40px",textAlign:"center",color:"#888"}}>Loading details…</div>
+            ) : (
+              <div className="booking-modal-body">
+
+                {/* Status badge */}
+                <div style={{marginBottom:"20px"}}>
+                  <span className={`booking-status-badge status-${(selectedBooking.status||"").toLowerCase().replace(/\s+/g,"-")}`}>
+                    {selectedBooking.status}
+                  </span>
+                  <span style={{marginLeft:"12px",fontSize:"0.82rem",color:"#888"}}>
+                    Booked on {selectedBooking.booking_date ? new Date(selectedBooking.booking_date).toLocaleDateString() : "-"}
+                  </span>
+                </div>
+
+                <div className="booking-modal-grid">
+                  {/* Guest Info */}
+                  <div className="booking-modal-section">
+                    <h4>👤 Guest Information</h4>
+                    <div className="bm-row"><span>Name</span><strong>{selectedBooking.guestName}</strong></div>
+                    <div className="bm-row"><span>Email</span><strong>{selectedBooking.guestEmail}</strong></div>
+                    <div className="bm-row"><span>Phone</span><strong>{selectedBooking.guestPhone || "-"}</strong></div>
+                    <div className="bm-row"><span>Address</span><strong>{selectedBooking.guestAddress || "-"}</strong></div>
+                    <div className="bm-row"><span>NIC / Passport</span><strong>{selectedBooking.nic_or_passport || "-"}</strong></div>
+                  </div>
+
+                  {/* Room Info */}
+                  <div className="booking-modal-section">
+                    <h4>🏨 Room Information</h4>
+                    <div className="bm-row"><span>Room Type</span><strong>{selectedBooking.roomType}</strong></div>
+                    <div className="bm-row"><span>Room Number</span><strong>{selectedBooking.roomNumber}</strong></div>
+                    <div className="bm-row"><span>Price/Night</span><strong>LKR {Number(selectedBooking.roomPrice||0).toLocaleString()}</strong></div>
+                    <div className="bm-row"><span>Amenities</span><strong>{selectedBooking.amenities || "-"}</strong></div>
+                  </div>
+
+                  {/* Stay Info */}
+                  <div className="booking-modal-section">
+                    <h4>📅 Stay Details</h4>
+                    <div className="bm-row"><span>Check-in</span><strong>{selectedBooking.checkIn ? new Date(selectedBooking.checkIn).toLocaleDateString() : "-"}</strong></div>
+                    <div className="bm-row"><span>Check-out</span><strong>{selectedBooking.checkOut ? new Date(selectedBooking.checkOut).toLocaleDateString() : "-"}</strong></div>
+                    <div className="bm-row"><span>Total Price</span><strong>LKR {Number(selectedBooking.total_price||0).toLocaleString()}</strong></div>
+                  </div>
+
+                  {/* Payment Info */}
+                  <div className="booking-modal-section">
+                    <h4>💳 Payment</h4>
+                    <div className="bm-row"><span>Method</span><strong>{selectedBooking.payment_method || "-"}</strong></div>
+                    <div className="bm-row"><span>Amount Paid</span><strong>{selectedBooking.amountPaid != null ? `LKR ${Number(selectedBooking.amountPaid).toLocaleString()}` : "-"}</strong></div>
+                    <div className="bm-row"><span>Status</span><strong>{selectedBooking.paymentStatus || "-"}</strong></div>
+                    <div className="bm-row"><span>Date</span><strong>{selectedBooking.paymentDate ? new Date(selectedBooking.paymentDate).toLocaleDateString() : "-"}</strong></div>
+                  </div>
+                </div>
+
+                {/* Special Requests — highlighted */}
+                {selectedBooking.special_requests && (
+                  <div className="booking-special-requests">
+                    <h4>✨ Special Requests</h4>
+                    <p>{selectedBooking.special_requests}</p>
+                  </div>
+                )}
+                {!selectedBooking.special_requests && (
+                  <div className="booking-special-requests booking-no-requests">
+                    <h4>✨ Special Requests</h4>
+                    <p>No special requests for this booking.</p>
+                  </div>
+                )}
+
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

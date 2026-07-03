@@ -5,6 +5,7 @@ const { authenticate, requireAdmin } = require("../middleware/auth");
 const { cleanupExpiredReservations } = require("../utils/cleanup");
 
 let paymentGatewayTableEnsured = false;
+let reservationColumnsEnsured = false;
 
 async function ensurePaymentGatewayTable() {
   if (paymentGatewayTableEnsured) return;
@@ -17,6 +18,30 @@ async function ensurePaymentGatewayTable() {
     )
   `);
   paymentGatewayTableEnsured = true;
+}
+
+// Safely add columns that may not exist in older DB versions
+async function ensureReservationColumns() {
+  if (reservationColumnsEnsured) return;
+  try {
+    await pool.query(`
+      ALTER TABLE Reservation ADD COLUMN IF NOT EXISTS special_requests TEXT NULL
+    `);
+  } catch (e) {
+    // MySQL < 8.0 doesn't support IF NOT EXISTS on ALTER — try checking manually
+    try {
+      const [cols] = await pool.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Reservation' AND COLUMN_NAME = 'special_requests'`
+      );
+      if (cols.length === 0) {
+        await pool.query(`ALTER TABLE Reservation ADD COLUMN special_requests TEXT NULL`);
+      }
+    } catch (e2) {
+      console.warn("Could not ensure special_requests column:", e2.message);
+    }
+  }
+  reservationColumnsEnsured = true;
 }
 
 router.use(authenticate, requireAdmin);
@@ -120,10 +145,11 @@ router.get("/booking-history", async (req, res) => {
 // ─── GET /api/admin/recent-bookings (kept for backward compat) ────────────────
 router.get("/recent-bookings", async (req, res) => {
   try {
+    await ensureReservationColumns();
     const [rows] = await pool.query(
       `SELECT
          r.reservationId, g.name AS guest, rm.roomType, rm.roomNumber,
-         r.checkIn, r.checkOut, r.status, r.total_price,
+         r.checkIn, r.checkOut, r.status, r.total_price, r.special_requests,
          CASE
            WHEN p.payment_method = 'Cash' THEN 'Cash'
            WHEN p.payment_method = 'Slip' AND p.status = 'Completed' THEN 'Slip (Verified)'
@@ -138,6 +164,35 @@ router.get("/recent-bookings", async (req, res) => {
        LIMIT 10`,
     );
     res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// ─── GET /api/admin/bookings/:id ─────────────────────────────────────────────
+router.get("/bookings/:id", async (req, res) => {
+  try {
+    await ensureReservationColumns();
+    const [rows] = await pool.query(
+      `SELECT
+         r.reservationId, r.checkIn, r.checkOut, r.status, r.total_price,
+         r.booking_date, r.special_requests,
+         g.guestId, g.name AS guestName, g.email AS guestEmail,
+         g.phone AS guestPhone, g.address AS guestAddress,
+         g.nic_or_passport,
+         rm.roomId, rm.roomType, rm.roomNumber, rm.roomPrice, rm.amenities,
+         p.paymentId, p.amount AS amountPaid, p.payment_method, p.status AS paymentStatus,
+         p.date AS paymentDate
+       FROM Reservation r
+       JOIN Guest g  ON g.guestId = r.guestId
+       JOIN Room  rm ON rm.roomId = r.roomId
+       LEFT JOIN Payment p ON p.reservationId = r.reservationId
+       WHERE r.reservationId = ?`,
+      [req.params.id],
+    );
+    if (!rows.length) return res.status(404).json({ error: "Booking not found" });
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });

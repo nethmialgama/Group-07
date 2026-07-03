@@ -7,6 +7,8 @@ import {
   setRememberedIdentifier,
 } from "./auth";
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
 // We added 'onSignupClick' to the properties here
 function Login({ onLogin, onBack, onSignupClick, onForgotPassword }) {
   const rememberedIdentifier = getRememberedIdentifier("user");
@@ -19,7 +21,12 @@ function Login({ onLogin, onBack, onSignupClick, onForgotPassword }) {
   const handleLogin = async () => {
     setError("");
     if (!identifier || !password) {
-      setError("Email/username and password are required");
+      setError("Email and password are required");
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(identifier)) {
+      setError("Please enter a valid email address (e.g. user@example.com)");
       return;
     }
 
@@ -63,10 +70,10 @@ function Login({ onLogin, onBack, onSignupClick, onForgotPassword }) {
             <h2>Login to your account</h2>
 
             <div className="form-group">
-              <label>Email or Username</label>
+              <label>Email</label>
               <input
-                type="text"
-                placeholder="Enter email or username"
+                type="email"
+                placeholder="Enter your email address"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
               />

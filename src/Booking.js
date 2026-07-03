@@ -47,6 +47,7 @@ function Booking({ onNavigate, room, searchCriteria }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [specialRequests, setSpecialRequests] = useState("");
 
   // 2. Fix Price Calculation: Remove commas from "6,000" and turn into number
   // "6,000" -> "6000" -> 6000
@@ -89,6 +90,7 @@ function Booking({ onNavigate, room, searchCriteria }) {
           roomId: selectedRoom.roomId,
           checkIn,
           checkOut,
+          specialRequests: specialRequests.trim() || null,
         }),
       });
 
@@ -195,7 +197,12 @@ function Booking({ onNavigate, room, searchCriteria }) {
             </select>
 
             <label>Special Requests</label>
-            <textarea placeholder="Any specific preferences?"></textarea>
+            <textarea
+              placeholder="Any specific preferences? (e.g. early check-in, extra pillows)"
+              value={specialRequests}
+              onChange={(e) => setSpecialRequests(e.target.value)}
+              rows={3}
+            />
 
             <div className="action-buttons">
               <button
@@ -260,10 +267,7 @@ function Booking({ onNavigate, room, searchCriteria }) {
               <label htmlFor="slip">Bank Slip 📄</label>
             </div>
 
-            <div className="policy-check">
-              <input type="checkbox" />
-              <label>I agree to cancellation and refund policy</label>
-            </div>
+
           </div>
         </div>
       </div>

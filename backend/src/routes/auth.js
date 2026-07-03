@@ -530,30 +530,46 @@ router.post("/forgot-password", async (req, res) => {
       [email, token, expiresAt],
     );
 
-    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${token}`;
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
     await transporter.sendMail({
       from: `"Smart Hotel" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "Password Reset Request – Smart Hotel",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <h2 style="color: #1a1a2e; border-bottom: 2px solid #c9a84c; padding-bottom: 10px;">Smart Hotel – Password Reset</h2>
-          <p>Hello,</p>
-          <p>We received a request to reset the password for your Smart Hotel account.</p>
-          <p>Click the button below to reset your password. This link is valid for <strong>1 hour</strong>.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetLink}"
-               style="background-color: #c9a84c; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">
-              Reset My Password
-            </a>
-          </div>
-          <p>If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
-          <p style="color: #888; font-size: 0.85rem;">For security, this link expires in 1 hour and can only be used once.</p>
-          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
-          <p style="color: #888; font-size: 0.8rem; text-align: center;">© 2025 Smart Hotel. All rights reserved.</p>
-        </div>
-      `,
+      subject: "Password Reset Request - Smart Hotel",
+      text: `Hello,\n\nWe received a request to reset the password for your Smart Hotel account.\n\nClick the link below to reset your password (valid for 1 hour):\n${resetLink}\n\nIf you did not request a password reset, please ignore this email.\n\n© 2025 Smart Hotel`,
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Password Reset</title></head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:40px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
+      <tr><td style="background-color:#1a1a2e;padding:24px 32px;">
+        <h1 style="margin:0;color:#c9a84c;font-size:24px;">Smart Hotel</h1>
+      </td></tr>
+      <tr><td style="padding:32px;">
+        <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;border-bottom:2px solid #c9a84c;padding-bottom:12px;">Password Reset Request</h2>
+        <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 12px;">Hello,</p>
+        <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 12px;">We received a request to reset the password for your Smart Hotel account.</p>
+        <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 24px;">Click the button below to reset your password. This link is valid for <strong>1 hour</strong>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td align="center" style="padding:16px 0 24px;">
+            <a href="${resetLink}" style="display:inline-block;background-color:#c9a84c;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:5px;font-size:16px;font-weight:bold;">Reset My Password</a>
+          </td></tr>
+        </table>
+        <p style="color:#555;font-size:14px;margin:0 0 8px;">Or copy and paste this link into your browser:</p>
+        <p style="color:#c9a84c;font-size:13px;word-break:break-all;margin:0 0 24px;">${resetLink}</p>
+        <p style="color:#777;font-size:13px;line-height:1.6;margin:0 0 8px;">If you did not request a password reset, please ignore this email.</p>
+        <p style="color:#999;font-size:12px;margin:0;">This link expires in 1 hour and can only be used once.</p>
+      </td></tr>
+      <tr><td style="background-color:#f9f9f9;padding:16px 32px;border-top:1px solid #e0e0e0;text-align:center;">
+        <p style="color:#aaa;font-size:12px;margin:0;">© 2025 Smart Hotel. All rights reserved.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`,
     });
 
     return res.json({
