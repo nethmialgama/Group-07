@@ -1,5 +1,5 @@
 {
-  "name": "smart-hotel",
+  "name": "smart-hotel-backend",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -20,27 +20,20 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.5.2",
+    "nodemailer": "^8.0.5",
+    "pdfkit": "^0.18.0",
+    "stripe": "^22.1.0"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   }
 }
