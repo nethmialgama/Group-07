@@ -121,10 +121,19 @@ router.get("/booking-history", async (req, res) => {
 router.get("/recent-bookings", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT r.reservationId, g.name AS guest, rm.roomType, rm.roomNumber, r.checkIn, r.checkOut, r.status, r.total_price
+      `SELECT
+         r.reservationId, g.name AS guest, rm.roomType, rm.roomNumber,
+         r.checkIn, r.checkOut, r.status, r.total_price,
+         CASE
+           WHEN p.payment_method = 'Cash' THEN 'Cash'
+           WHEN p.payment_method = 'Slip' AND p.status = 'Completed' THEN 'Slip (Verified)'
+           WHEN p.payment_method IS NOT NULL THEN p.payment_method
+           ELSE NULL
+         END AS payment_method
        FROM Reservation r
        JOIN Guest g ON g.guestId = r.guestId
        JOIN Room rm ON rm.roomId = r.roomId
+       LEFT JOIN Payment p ON p.reservationId = r.reservationId
        ORDER BY r.reservationId DESC
        LIMIT 10`,
     );
@@ -582,3 +591,4 @@ router.put("/confirm-slip/:paymentId", async (req, res) => {
 });
 
 module.exports = router;
+
