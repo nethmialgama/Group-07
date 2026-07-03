@@ -6,6 +6,7 @@ import { showToast } from "./toast";
 const STATUS_COLORS = {
   Confirmed: { bg: "#e6f4ea", color: "#2e7d32", label: "Confirmed" },
   Pending: { bg: "#fff8e1", color: "#f57f17", label: "Pending" },
+  PartiallyPaid: { bg: "#fff3e0", color: "#e65100", label: "Partially Paid" },
   "Checked-In": { bg: "#e3f2fd", color: "#1565c0", label: "Checked-In" },
   "Checked-Out": { bg: "#f3e5f5", color: "#6a1b9a", label: "Checked-Out" },
   Cancelled: { bg: "#fce4ec", color: "#b71c1c", label: "Cancelled" },
@@ -103,7 +104,9 @@ function Dashboard({ onNavigate, onLogout }) {
     activeTab === "upcoming" ? upcomingBookings : historyBookings;
 
   const canCancel = (booking) =>
-    booking.status === "Confirmed" || booking.status === "Pending";
+    booking.status === "Confirmed" ||
+    booking.status === "Pending" ||
+    booking.status === "PartiallyPaid";
 
   const stats = [
     {
