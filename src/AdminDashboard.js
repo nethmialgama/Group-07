@@ -93,6 +93,8 @@ function AdminDashboard({ onNavigate, onLogout }) {
             room: item.roomType,
             in: new Date(item.checkIn).toLocaleDateString(),
             out: new Date(item.checkOut).toLocaleDateString(),
+            totalPrice: item.total_price != null ? Number(item.total_price) : null,
+            paymentMethod: item.payment_method || null,
           })),
         );
 
@@ -343,6 +345,8 @@ function AdminDashboard({ onNavigate, onLogout }) {
                   <th>Room</th>
                   <th>Check-in</th>
                   <th>Check-out</th>
+                  <th>Total Paid</th>
+                  <th>Payment</th>
                 </tr>
               </thead>
               <tbody>
@@ -353,6 +357,26 @@ function AdminDashboard({ onNavigate, onLogout }) {
                     <td>{b.room}</td>
                     <td>{b.in}</td>
                     <td>{b.out}</td>
+                    <td>
+                      {b.totalPrice != null
+                        ? `LKR ${b.totalPrice.toLocaleString()}`
+                        : "-"}
+                    </td>
+                    <td>
+                      {b.paymentMethod ? (
+                        <span
+                          className={`payment-badge ${
+                            b.paymentMethod === "Cash"
+                              ? "payment-badge-cash"
+                              : "payment-badge-slip"
+                          }`}
+                        >
+                          {b.paymentMethod}
+                        </span>
+                      ) : (
+                        <span className="payment-badge payment-badge-none">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
