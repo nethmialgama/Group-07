@@ -5,17 +5,20 @@ import { getStoredAuth, getAuthHeaders } from "./auth";
 
 function Payment({ onNavigate, room }) {
   const storedAuth = getStoredAuth();
+  const user = storedAuth.user || {};
 
   // ── IMPORTANT: Declare selectedRoom FIRST (used inside useEffect) ─────────
   const selectedRoom = room || null;
 
   // ── ALL HOOKS AFTER selectedRoom ──────────────────────────────────────────
-  const [fullName, setFullName] = useState(storedAuth.name || "");
-  const [email, setEmail] = useState(storedAuth.email || "");
+  // Pre-fill from stored auth as initial value; refreshed by profile fetch below
+  const [fullName, setFullName] = useState(user.name || "");
+  const [email, setEmail] = useState(user.email || "");
   const [phone, setPhone] = useState(
-    selectedRoom?.bookingPhone || storedAuth.phone || "",
+    selectedRoom?.bookingPhone || user.phone || "",
   );
-  const [address, setAddress] = useState(selectedRoom?.bookingAddress || "");
+  const [address, setAddress] = useState(selectedRoom?.bookingAddress || user.address || "");
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [errors, setErrors] = useState({});
@@ -26,6 +29,28 @@ function Payment({ onNavigate, room }) {
   const [payAmount, setPayAmount] = useState(0); // what user chose to pay
 
   const hasFetchedQuote = useRef(false);
+
+  // ── Fetch user profile and pre-fill billing fields ───────────────────────
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/profile", {
+          headers: getAuthHeaders(),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.name) setFullName(data.name);
+        if (data.email) setEmail(data.email);
+        // Only overwrite phone/address if not already supplied from booking form
+        if (data.phone && !selectedRoom?.bookingPhone) setPhone(data.phone);
+        if (data.address && !selectedRoom?.bookingAddress) setAddress(data.address);
+        setProfileLoaded(true);
+      } catch (err) {
+        console.error("Could not fetch profile for billing pre-fill:", err);
+      }
+    };
+    fetchProfile();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch payment quote from backend ──────────────────────────────────────
   useEffect(() => {
@@ -201,6 +226,11 @@ function Payment({ onNavigate, room }) {
         {/* ── LEFT: Billing Information ── */}
         <div className="billing-section">
           <h2>Billing Information</h2>
+          {!profileLoaded && (
+            <p style={{ fontSize: "0.82rem", color: "#888", marginBottom: "8px" }}>
+              Loading your details…
+            </p>
+          )}
           <div className="billing-form">
             <label>Full Name *</label>
             <input

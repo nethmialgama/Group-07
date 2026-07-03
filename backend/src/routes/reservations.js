@@ -6,9 +6,30 @@ const { authenticate } = require("../middleware/auth");
 const { getRefundQuote } = require("../services/paymentPolicy");
 const { cleanupExpiredReservations } = require("../utils/cleanup");
 
+let reservationColumnsEnsured = false;
+async function ensureReservationColumns() {
+  if (reservationColumnsEnsured) return;
+  try {
+    await pool.query(`ALTER TABLE Reservation ADD COLUMN IF NOT EXISTS special_requests TEXT NULL`);
+  } catch (e) {
+    try {
+      const [cols] = await pool.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Reservation' AND COLUMN_NAME = 'special_requests'`
+      );
+      if (cols.length === 0) {
+        await pool.query(`ALTER TABLE Reservation ADD COLUMN special_requests TEXT NULL`);
+      }
+    } catch (e2) {
+      console.warn("Could not ensure special_requests column:", e2.message);
+    }
+  }
+  reservationColumnsEnsured = true;
+}
+
 // POST /api/reservations - create a reservation
 router.post("/", authenticate, async (req, res) => {
-  const { guestId, roomId, checkIn, checkOut, staffId } = req.body;
+  const { guestId, roomId, checkIn, checkOut, staffId, specialRequests } = req.body;
   if (!guestId || !roomId || !checkIn || !checkOut) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -92,9 +113,9 @@ router.post("/", authenticate, async (req, res) => {
     const totalPrice = (roomPrice * nights).toFixed(2);
 
     const [result] = await pool.query(
-      `INSERT INTO Reservation (checkIn, checkOut, booking_date, status, total_price, guestId, roomId, staffId)
-       VALUES (?, ?, NOW(), 'Pending', ?, ?, ?, ?)`,
-      [checkIn, checkOut, totalPrice, guestId, roomId, staffId || null],
+      `INSERT INTO Reservation (checkIn, checkOut, booking_date, status, total_price, guestId, roomId, staffId, special_requests)
+       VALUES (?, ?, NOW(), 'Pending', ?, ?, ?, ?, ?)`,
+      [checkIn, checkOut, totalPrice, guestId, roomId, staffId || null, specialRequests || null],
     );
 
     res.status(201).json({ reservationId: result.insertId, totalPrice });
